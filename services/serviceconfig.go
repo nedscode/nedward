@@ -112,22 +112,6 @@ func (c *ServiceConfig) UnmarshalJSON(data []byte) error {
 
 // validate checks if this config is allowed
 func (c *ServiceConfig) validate() error {
-	if c.LaunchChecks != nil {
-		checkCount := 0
-		if len(c.LaunchChecks.LogText) > 0 {
-			checkCount++
-		}
-		if len(c.LaunchChecks.Ports) > 0 {
-			checkCount++
-		}
-		if c.LaunchChecks.Wait != 0 {
-			checkCount++
-		}
-		if checkCount > 1 {
-			return errors.New("cannot specify multiple launch check types for one service")
-		}
-
-	}
 	return nil
 }
 
@@ -214,6 +198,10 @@ type ServiceConfigProperties struct {
 // ServiceConfigCommands define the commands for building, launching and stopping a service
 // All commands are optional
 type ServiceConfigCommands struct {
+	// Command to install
+	Install string `json:"install,omitempty"`
+	// Command to update
+	Update string `json:"update,omitempty"`
 	// Command to build
 	Build string `json:"build,omitempty"`
 	// Command to launch

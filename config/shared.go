@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/nedscode/nedward/common"
 	"github.com/nedscode/nedward/services"
+	"fmt"
 )
 
 var basePath string
@@ -24,8 +25,24 @@ func GetServiceMap() map[string]*services.ServiceConfig {
 	return serviceMap
 }
 
+
+type chainLogger struct {
+	l common.Logger
+}
+
+func (c *chainLogger) Printf(format string, v ...interface{}) {
+	fmt.Printf(format, v...)
+	c.l.Printf(format, v...)
+}
+
 // LoadSharedConfig loads an Nedward project config into the shared maps
 func LoadSharedConfig(configPath string, nedwardVersion string, logger common.Logger) error {
+	if false {
+		logger = &chainLogger{
+			l: logger,
+		}
+	}
+
 	InitEmptyConfig()
 	if configPath != "" {
 		basePath = filepath.Dir(configPath)

@@ -57,10 +57,9 @@ func LoadServiceCommand(service *ServiceConfig, overrides ContextOverride) (comm
 		command.Overrides = command.Overrides.Merge(overrides)
 		err = command.checkPid()
 	}()
-	defer service.printf("Got command: %v\n", command)
 
 	legacyPidFile := service.GetPidPathLegacy()
-	service.printf("Checking pidfile for %v", service.Name)
+	service.printf("Checking pidfile for %v\n", service.Name)
 	if _, err := os.Stat(legacyPidFile); err == nil {
 		command.Pid, err = service.getPid(command, legacyPidFile)
 		if err != nil {
@@ -183,6 +182,7 @@ func (c *ServiceCommand) BuildSync(force bool, task tracker.Task) error {
 // BuildWithTracker builds a service.
 // If force is false, the build will be skipped if the service is already running.
 func (c *ServiceCommand) BuildWithTracker(force bool, task tracker.Task) error {
+	c.printf("building with tracker")
 	if c.Service.Commands.Build == "" {
 		return nil
 	}
@@ -218,6 +218,8 @@ func (c *ServiceCommand) constructCommand(command string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
+	c.printf("running command %s %s", command, strings.Join(cmdArgs, " "))
 	cmd := exec.Command(command, cmdArgs...)
 	if c.Service.Path != nil {
 		cmd.Dir = os.Expand(*c.Service.Path, c.Getenv)
@@ -354,54 +356,33 @@ func hasPort(proc *process.Process, connections []net.ConnectionStat) bool {
 	return false
 }
 
-func cancelableWait(cancel chan struct{}, task func(cancel <-chan struct{}) error) <-chan struct{ error } {
+func cancelableWait(cancel chan struct{}, tasks []func(cancel <-chan struct{}) error) <-chan struct{ error } {
 	finished := make(chan struct{ error })
+
 	go func() {
-		defer close(finished)
-		err := task(cancel)
-		finished <- struct{ error }{err}
+		var result struct{ error }
+		for _, task := range tasks {
+			result = struct{ error }{task(cancel)}
+			if result.error != nil {
+				break
+			}
+		}
+
+		finished <- result
 	}()
+
 	return finished
 }
 
 func (c *ServiceCommand) waitUntilLive(command *exec.Cmd) error {
+	c.printf("waitUntilLive for %v\n", c.Service.Name)
 
-	c.printf("Waiting for %v to start.\n", c.Service.Name)
+	var startChecks []func(cancel <-chan struct{}) error
+	var abortChecks []func(cancel <-chan struct{}) error
 
-	var startCheck func(cancel <-chan struct{}) error
-	if c.Service.LaunchChecks != nil && len(c.Service.LaunchChecks.LogText) > 0 {
-		startCheck = func(cancel <-chan struct{}) error {
-			return errors.WithStack(
-				c.waitForLogText(c.Service.LaunchChecks.LogText, cancel),
-			)
-		}
-	} else if c.Service.LaunchChecks != nil && len(c.Service.LaunchChecks.Ports) > 0 {
-		startCheck = func(cancel <-chan struct{}) error {
-			return errors.WithStack(
-				c.waitForListeningPorts(c.Service.LaunchChecks.Ports, cancel, command),
-			)
-		}
-	} else if c.Service.LaunchChecks != nil && c.Service.LaunchChecks.Wait != 0 {
-		startCheck = func(cancel <-chan struct{}) error {
-			delay := time.NewTimer(time.Duration(c.Service.LaunchChecks.Wait) * time.Millisecond)
-			defer delay.Stop()
-			select {
-			case <-cancel:
-				return nil
-			case <-delay.C:
-				return nil
-			}
-		}
-	} else {
-		startCheck = func(cancel <-chan struct{}) error {
-			return errors.WithStack(
-				c.waitForAnyPort(cancel, command),
-			)
-		}
-	}
-
-	processFinished := func(cancel <-chan struct{}) error {
+	abortChecks = append(abortChecks, func(cancel <-chan struct{}) error {
 		// Wait until the process exists
+		c.printf("waiting for command to die\n")
 		command.Wait()
 		select {
 		case <-cancel:
@@ -409,6 +390,59 @@ func (c *ServiceCommand) waitUntilLive(command *exec.Cmd) error {
 		default:
 		}
 		return errors.New("service terminated prematurely")
+	})
+
+	if c.Service.LaunchChecks != nil && len(c.Service.LaunchChecks.LogText) > 0 {
+		c.printf("adding log text check\n")
+		startChecks = append(startChecks, func(cancel <-chan struct{}) error {
+			c.printf("waiting for log text: %v\n", c.Service.LaunchChecks.LogText)
+			err := errors.WithStack(
+				c.waitForLogText(c.Service.LaunchChecks.LogText, cancel),
+			)
+			c.printf("log text done: %v\n", err)
+			return err
+		})
+	}
+
+	if c.Service.LaunchChecks != nil && len(c.Service.LaunchChecks.Ports) > 0 {
+		c.printf("adding port check\n")
+		startChecks = append(startChecks, func(cancel <-chan struct{}) error {
+			c.printf("listening for ports %v\n", c.Service.LaunchChecks.Ports)
+			err := errors.WithStack(
+				c.waitForListeningPorts(c.Service.LaunchChecks.Ports, cancel, command),
+			)
+			c.printf("listening ports done: %v\n", err)
+			return err
+		})
+	}
+
+	if c.Service.LaunchChecks != nil && c.Service.LaunchChecks.Wait != 0 {
+		c.printf("adding wait check\n")
+		startChecks = append(startChecks, func(cancel <-chan struct{}) error {
+			c.printf("waiting for: %d ms\n", c.Service.LaunchChecks.Wait)
+			delay := time.NewTimer(time.Duration(c.Service.LaunchChecks.Wait) * time.Millisecond)
+			defer delay.Stop()
+			select {
+			case <-cancel:
+				c.printf("cancel done\n")
+				return nil
+			case <-delay.C:
+				c.printf("delay done\n")
+				return nil
+			}
+		})
+	}
+
+	if len(startChecks) == 0 {
+		c.printf("adding default any port check\n")
+		startChecks = append(startChecks, func(cancel <-chan struct{}) error {
+			c.printf("listening any ports\n")
+			err := errors.WithStack(
+				c.waitForAnyPort(cancel, command),
+			)
+			c.printf("listening any ports done: %v\n", err)
+			return err
+		})
 	}
 
 	timeout := time.NewTimer(time.Duration(StartupTimeoutSeconds) * time.Second)
@@ -418,9 +452,9 @@ func (c *ServiceCommand) waitUntilLive(command *exec.Cmd) error {
 	defer close(done)
 
 	select {
-	case result := <-cancelableWait(done, startCheck):
+	case result := <-cancelableWait(done, startChecks):
 		return errors.WithStack(result.error)
-	case result := <-cancelableWait(done, processFinished):
+	case result := <-cancelableWait(done, abortChecks):
 		return errors.WithStack(result.error)
 	case <-timeout.C:
 		return errors.New("Waiting for service timed out")
@@ -457,6 +491,7 @@ func (c *ServiceCommand) StartAsync(cfg OperationConfig, task tracker.Task) erro
 		}
 	}
 
+	c.printf("removing running log\n")
 	os.Remove(c.Service.GetRunLog())
 
 	cmd, err := c.getLaunchCommand(cfg)
@@ -464,11 +499,14 @@ func (c *ServiceCommand) StartAsync(cfg OperationConfig, task tracker.Task) erro
 		startTask.SetState(tracker.TaskStateFailed, err.Error())
 		return errors.WithStack(err)
 	}
+
 	cmd.Env = append(os.Environ(), c.Overrides.Env...)
 	cmd.Env = append(cmd.Env, c.Service.Env...)
 
+	c.printf("starting command\n")
 	err = cmd.Start()
 	if err != nil {
+		c.printf("command failed: %v\n", err)
 		startTask.SetState(tracker.TaskStateFailed)
 		return errors.WithStack(err)
 	}
@@ -483,6 +521,7 @@ func (c *ServiceCommand) StartAsync(cfg OperationConfig, task tracker.Task) erro
 		return errors.WithStack(err)
 	}
 
+	c.printf("waiting until live\n")
 	err = c.waitUntilLive(cmd)
 	if err == nil {
 		startTask.SetState(tracker.TaskStateSuccess)
@@ -490,6 +529,7 @@ func (c *ServiceCommand) StartAsync(cfg OperationConfig, task tracker.Task) erro
 		return nil
 	}
 
+	c.printf("getting log\n")
 	log, err := logToStringSlice(c.Service.GetRunLog())
 	if err != nil {
 		startTask.SetState(tracker.TaskStateFailed, "Could not read log", err.Error())
@@ -530,6 +570,7 @@ func (c *ServiceCommand) getLaunchCommand(cfg OperationConfig) (*exec.Cmd, error
 	}
 	cmdArgs = append(cmdArgs, "--directory", workingDir, c.Service.Name)
 
+	c.printf("Running %s %s\n", command, strings.Join(cmdArgs, " "))
 	cmd := exec.Command(command, cmdArgs...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	return cmd, nil
