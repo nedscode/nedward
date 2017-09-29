@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/commandline"
-	"github.com/yext/edward/config"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/commandline"
+	"github.com/nedscode/nedward/config"
+	"github.com/nedscode/nedward/services"
 )
 
 // Runner provides state and functions for running a given service

@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/services"
 )
 
 // GoGenerator generates go services from main packages

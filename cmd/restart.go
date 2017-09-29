@@ -11,7 +11,7 @@ var restartCmd = &cobra.Command{
 	Short: "Rebuild and relaunch a service or a group",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return errors.WithStack(
-			edwardClient.Restart(
+			nedwardClient.Restart(
 				args,
 				*restartFlags.force,
 				*restartFlags.skipBuild,
@@ -40,5 +40,5 @@ func init() {
 	restartFlags.force = restartCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
 	restartFlags.tail = restartCmd.Flags().BoolP("tail", "t", false, "After starting, tail logs for services.")
 	restartFlags.exclude = restartCmd.Flags().StringArrayP("exclude", "e", nil, "Exclude `SERVICE` from this operation")
-	restartFlags.timeout = restartCmd.Flags().Int("timeout", 30, "The amount of time in seconds that Edward will wait for a service to launch before timing out. Defaults to 30s")
+	restartFlags.timeout = restartCmd.Flags().Int("timeout", 30, "The amount of time in seconds that Nedward will wait for a service to launch before timing out. Defaults to 30s")
 }

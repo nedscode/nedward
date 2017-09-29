@@ -6,8 +6,8 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/common"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/common"
+	"github.com/nedscode/nedward/services"
 )
 
 var basePath string
@@ -24,12 +24,12 @@ func GetServiceMap() map[string]*services.ServiceConfig {
 	return serviceMap
 }
 
-// LoadSharedConfig loads an Edward project config into the shared maps
-func LoadSharedConfig(configPath string, edwardVersion string, logger common.Logger) error {
+// LoadSharedConfig loads an Nedward project config into the shared maps
+func LoadSharedConfig(configPath string, nedwardVersion string, logger common.Logger) error {
 	InitEmptyConfig()
 	if configPath != "" {
 		basePath = filepath.Dir(configPath)
-		cfg, err := LoadConfig(configPath, edwardVersion, logger)
+		cfg, err := LoadConfig(configPath, nedwardVersion, logger)
 		if err != nil {
 			workingDir, _ := os.Getwd()
 			configRel, _ := filepath.Rel(workingDir, configPath)

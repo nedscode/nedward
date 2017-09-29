@@ -1,13 +1,13 @@
-package edward
+package nedward
 
 import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/config"
-	"github.com/yext/edward/services"
-	"github.com/yext/edward/tracker"
-	"github.com/yext/edward/worker"
+	"github.com/nedscode/nedward/config"
+	"github.com/nedscode/nedward/services"
+	"github.com/nedscode/nedward/tracker"
+	"github.com/nedscode/nedward/worker"
 )
 
 func (c *Client) Restart(names []string, force bool, skipBuild bool, tail bool, noWatch bool, exclude []string) error {
@@ -66,7 +66,7 @@ func (c *Client) restartOneOrMoreServices(serviceNames []string, skipBuild bool,
 	}
 
 	cfg := services.OperationConfig{
-		EdwardExecutable: c.EdwardExecutable,
+		NedwardExecutable: c.NedwardExecutable,
 		Exclusions:       exclude,
 		SkipBuild:        skipBuild,
 		NoWatch:          noWatch,

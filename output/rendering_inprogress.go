@@ -6,7 +6,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
-	"github.com/yext/edward/tracker"
+	"github.com/nedscode/nedward/tracker"
 )
 
 type InProgressRenderer struct {

@@ -8,10 +8,10 @@ import (
 // generateCmd represents the generate command
 var generateCmd = &cobra.Command{
 	Use:   "generate",
-	Short: "Automatically generate Edward config for a source tree",
+	Short: "Automatically generate Nedward config for a source tree",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return errors.WithStack(
-			edwardClient.Generate(
+			nedwardClient.Generate(
 				args,
 				*generateFlags.force || *generateFlags.noPrompt,
 				*generateFlags.group,

@@ -1,4 +1,4 @@
-package edward_test
+package nedward_test
 
 import (
 	"fmt"
@@ -12,10 +12,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/theothertomelliott/must"
-	"github.com/yext/edward/common"
-	"github.com/yext/edward/config"
-	"github.com/yext/edward/edward"
-	"github.com/yext/edward/home"
+	"github.com/nedscode/nedward/common"
+	"github.com/nedscode/nedward/config"
+	"github.com/nedscode/nedward/nedward"
+	"github.com/nedscode/nedward/home"
 )
 
 func TestGenerate(t *testing.T) {
@@ -40,92 +40,92 @@ func TestGenerate(t *testing.T) {
 		{
 			name:             "existing config and services",
 			path:             "testdata/generate/singlewithconfig",
-			config:           "edward.json",
+			config:           "nedward.json",
 			expectedOutput:   "No new services, groups or imports found\n",
-			expectedServices: []string{"edward-test-service"},
+			expectedServices: []string{"nedward-test-service"},
 		},
 		{
 			name:             "existing config and services - forced",
 			path:             "testdata/generate/singlewithconfig",
-			config:           "edward.json",
+			config:           "nedward.json",
 			expectedOutput:   "No new services, groups or imports found\n",
 			force:            true,
-			expectedServices: []string{"edward-test-service"},
+			expectedServices: []string{"nedward-test-service"},
 		},
 		{
 			name:   "existing empty config file",
 			path:   "testdata/generate/emptyconfig",
-			config: "edward.json",
+			config: "nedward.json",
 			input:  "Y\n",
 			expectedOutput: `The following will be generated:
 Services:
-	edward-test-service
-Do you wish to continue? [y/n]? Wrote to: ${TMP_PATH}/edward.json
+	nedward-test-service
+Do you wish to continue? [y/n]? Wrote to: ${TMP_PATH}/nedward.json
 `,
-			expectedServices: []string{"edward-test-service"},
+			expectedServices: []string{"nedward-test-service"},
 		},
 		{
 			name:   "duplicates",
 			path:   "testdata/generate/duplicatenames",
-			config: "edward.json",
+			config: "nedward.json",
 			force:  true,
-			err:    errors.New("Multiple services or groups were found with the names: edward-test-service"),
+			err:    errors.New("Multiple services or groups were found with the names: nedward-test-service"),
 		},
 		{
 			name:   "new config and service",
 			path:   "testdata/generate/single",
-			config: "edward.json",
+			config: "nedward.json",
 			input:  "Y\n",
 			expectedOutput: `The following will be generated:
 Services:
-	edward-test-service
-Do you wish to continue? [y/n]? Wrote to: ${TMP_PATH}/edward.json
+	nedward-test-service
+Do you wish to continue? [y/n]? Wrote to: ${TMP_PATH}/nedward.json
 `,
-			expectedServices: []string{"edward-test-service"},
+			expectedServices: []string{"nedward-test-service"},
 		},
 		{
 			name:   "new config and service - forced",
 			path:   "testdata/generate/single",
-			config: "edward.json",
+			config: "nedward.json",
 			force:  true,
-			expectedOutput: `Wrote to: ${TMP_PATH}/edward.json
+			expectedOutput: `Wrote to: ${TMP_PATH}/nedward.json
 `,
-			expectedServices: []string{"edward-test-service"},
+			expectedServices: []string{"nedward-test-service"},
 		},
 		{
 			name:   "new config and service with group",
 			path:   "testdata/generate/single",
-			config: "edward.json",
+			config: "nedward.json",
 			group:  "newgroup",
 			input:  "Y\n",
 			expectedOutput: `The following will be generated:
 Services:
-	edward-test-service
-Do you wish to continue? [y/n]? Wrote to: ${TMP_PATH}/edward.json
+	nedward-test-service
+Do you wish to continue? [y/n]? Wrote to: ${TMP_PATH}/nedward.json
 `,
-			expectedServices: []string{"edward-test-service"},
-			expectedGroups:   map[string][]string{"newgroup": []string{"edward-test-service"}},
+			expectedServices: []string{"nedward-test-service"},
+			expectedGroups:   map[string][]string{"newgroup": []string{"nedward-test-service"}},
 		},
 		{
 			name:   "new config and service with existing group",
 			path:   "testdata/generate/groupwithconfig",
-			config: "edward.json",
+			config: "nedward.json",
 			group:  "group1",
 			input:  "Y\n",
 			expectedOutput: `The following will be generated:
 Services:
-	edward-test-service2
-Do you wish to continue? [y/n]? Wrote to: ${TMP_PATH}/edward.json
+	nedward-test-service2
+Do you wish to continue? [y/n]? Wrote to: ${TMP_PATH}/nedward.json
 `,
-			expectedServices: []string{"edward-test-service", "edward-test-service2"},
-			expectedGroups:   map[string][]string{"group1": []string{"edward-test-service", "edward-test-service2"}},
+			expectedServices: []string{"nedward-test-service", "nedward-test-service2"},
+			expectedGroups:   map[string][]string{"group1": []string{"nedward-test-service", "nedward-test-service2"}},
 		},
 	}
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			// Set up edward home directory
-			if err := home.EdwardConfig.Initialize(); err != nil {
+			// Set up nedward home directory
+			if err := home.NedwardConfig.Initialize(); err != nil {
 				t.Fatal(err)
 			}
 
@@ -135,8 +135,8 @@ Do you wish to continue? [y/n]? Wrote to: ${TMP_PATH}/edward.json
 			cleanup := createWorkingDir(t, test.name, test.path)
 			defer cleanup()
 
-			client := edward.NewClient()
-			client.EdwardExecutable = edwardExecutable
+			client := nedward.NewClient()
+			client.NedwardExecutable = nedwardExecutable
 			client.DisableConcurrentPhases = true
 
 			// Set up input and output for the client
@@ -185,7 +185,7 @@ Do you wish to continue? [y/n]? Wrote to: ${TMP_PATH}/edward.json
 			expectedOutput := strings.Replace(test.expectedOutput, "${TMP_PATH}", cwd, 1)
 			must.BeEqual(t, expectedOutput, output)
 
-			cfg, err := config.LoadConfig(test.config, common.EdwardVersion, client.Logger)
+			cfg, err := config.LoadConfig(test.config, common.NedwardVersion, client.Logger)
 			if err != nil {
 				t.Error(err)
 				return

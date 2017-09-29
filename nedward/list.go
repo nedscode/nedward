@@ -1,9 +1,9 @@
-package edward
+package nedward
 
 import (
 	"fmt"
 
-	"github.com/yext/edward/config"
+	"github.com/nedscode/nedward/config"
 )
 
 func (c *Client) List() error {

@@ -1,14 +1,14 @@
-package edward_test
+package nedward_test
 
 import (
 	"strings"
 	"testing"
 
 	"github.com/theothertomelliott/must"
-	"github.com/yext/edward/common"
-	"github.com/yext/edward/config"
-	"github.com/yext/edward/edward"
-	"github.com/yext/edward/home"
+	"github.com/nedscode/nedward/common"
+	"github.com/nedscode/nedward/config"
+	"github.com/nedscode/nedward/nedward"
+	"github.com/nedscode/nedward/home"
 )
 
 func TestStatus(t *testing.T) {
@@ -24,21 +24,21 @@ func TestStatus(t *testing.T) {
 		{
 			name:             "single service",
 			path:             "testdata/single",
-			config:           "edward.json",
+			config:           "nedward.json",
 			runningServices:  []string{"service"},
 			expectedServices: []string{"service"},
 		},
 		{
 			name:             "multiple services",
 			path:             "testdata/multiple",
-			config:           "edward.json",
+			config:           "nedward.json",
 			runningServices:  []string{"service1", "service2"},
 			expectedServices: []string{"service1", "service2"},
 		},
 		{
 			name:             "multiple services - one specified",
 			path:             "testdata/multiple",
-			config:           "edward.json",
+			config:           "nedward.json",
 			runningServices:  []string{"service1", "service2"},
 			inServices:       []string{"service2"},
 			expectedServices: []string{"service2"},
@@ -46,7 +46,7 @@ func TestStatus(t *testing.T) {
 		{
 			name:             "full group",
 			path:             "testdata/group",
-			config:           "edward.json",
+			config:           "nedward.json",
 			runningServices:  []string{"group"},
 			inServices:       []string{"group"},
 			expectedServices: []string{"service1", "service2", "service3"},
@@ -54,7 +54,7 @@ func TestStatus(t *testing.T) {
 		{
 			name:             "partial group",
 			path:             "testdata/group",
-			config:           "edward.json",
+			config:           "nedward.json",
 			runningServices:  []string{"service2", "service3"},
 			inServices:       []string{"group"},
 			expectedServices: []string{"service2", "service3"},
@@ -62,8 +62,8 @@ func TestStatus(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// Set up edward home directory
-			if err := home.EdwardConfig.Initialize(); err != nil {
+			// Set up nedward home directory
+			if err := home.NedwardConfig.Initialize(); err != nil {
 				t.Fatal(err)
 			}
 
@@ -73,18 +73,18 @@ func TestStatus(t *testing.T) {
 			cleanup := createWorkingDir(t, test.name, test.path)
 			defer cleanup()
 
-			err = config.LoadSharedConfig(test.config, common.EdwardVersion, nil)
+			err = config.LoadSharedConfig(test.config, common.NedwardVersion, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			client := edward.NewClient()
+			client := nedward.NewClient()
 
 			client.Config = test.config
 			tf := newTestFollower()
 			client.Follower = tf
 
-			client.EdwardExecutable = edwardExecutable
+			client.NedwardExecutable = nedwardExecutable
 			client.DisableConcurrentPhases = true
 
 			err = client.Start(test.runningServices, false, false, false, nil)

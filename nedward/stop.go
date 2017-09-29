@@ -1,11 +1,11 @@
-package edward
+package nedward
 
 import (
 	"github.com/pkg/errors"
-	"github.com/yext/edward/config"
-	"github.com/yext/edward/services"
-	"github.com/yext/edward/tracker"
-	"github.com/yext/edward/worker"
+	"github.com/nedscode/nedward/config"
+	"github.com/nedscode/nedward/services"
+	"github.com/nedscode/nedward/tracker"
+	"github.com/nedscode/nedward/worker"
 )
 
 func (c *Client) Stop(names []string, force bool, exclude []string) error {
@@ -44,7 +44,7 @@ func (c *Client) Stop(names []string, force bool, exclude []string) error {
 	}
 
 	cfg := services.OperationConfig{
-		EdwardExecutable: c.EdwardExecutable,
+		NedwardExecutable: c.NedwardExecutable,
 		Exclusions:       exclude,
 	}
 

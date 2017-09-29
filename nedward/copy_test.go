@@ -1,4 +1,4 @@
-package edward_test
+package nedward_test
 
 import (
 	"fmt"

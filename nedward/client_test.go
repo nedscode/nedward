@@ -1,4 +1,4 @@
-package edward_test
+package nedward_test
 
 import (
 	"io/ioutil"
@@ -11,22 +11,22 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/theothertomelliott/gopsutil-nocgo/process"
-	"github.com/yext/edward/tracker"
+	"github.com/nedscode/nedward/tracker"
 )
 
-// Path to the Edward executable as built
-var edwardExecutable string
+// Path to the Nedward executable as built
+var nedwardExecutable string
 
 func TestMain(m *testing.M) {
-	buildDir, err := ioutil.TempDir("", "edwardTest")
+	buildDir, err := ioutil.TempDir("", "nedwardTest")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer os.RemoveAll(buildDir)
 
-	edwardExecutable = path.Join(buildDir, "edward")
+	nedwardExecutable = path.Join(buildDir, "nedward")
 
-	cmd := exec.Command("go", "build", "-o", edwardExecutable, "github.com/yext/edward")
+	cmd := exec.Command("go", "build", "-o", nedwardExecutable, "github.com/nedscode/nedward")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
@@ -140,7 +140,7 @@ func verifyAndStopRunner(t *testing.T, runner *process.Process) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	if cmdline[0] == "edward" || cmdline[1] == "run" {
+	if cmdline[0] == "nedward" || cmdline[1] == "run" {
 		services, err := runner.Children()
 		if err != nil {
 			return errors.WithStack(err)
@@ -155,7 +155,7 @@ func verifyAndStopRunner(t *testing.T, runner *process.Process) error {
 			}
 		}
 	} else {
-		t.Errorf("Expected an edward run command, got: %v", cmdline)
+		t.Errorf("Expected an nedward run command, got: %v", cmdline)
 	}
 	return nil
 }

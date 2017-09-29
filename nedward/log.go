@@ -1,12 +1,12 @@
-package edward
+package nedward
 
 import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/config"
-	"github.com/yext/edward/runner"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/config"
+	"github.com/nedscode/nedward/runner"
+	"github.com/nedscode/nedward/services"
 )
 
 func (c *Client) Log(names []string) error {

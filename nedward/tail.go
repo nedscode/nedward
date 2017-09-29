@@ -1,4 +1,4 @@
-package edward
+package nedward
 
 import (
 	"bufio"
@@ -9,8 +9,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
-	"github.com/yext/edward/runner"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/runner"
+	"github.com/nedscode/nedward/services"
 )
 
 type byTime []runner.LogLine
@@ -32,7 +32,7 @@ func printMessage(logMessage runner.LogLine, multiple bool) {
 		color.Set(color.FgHiYellow)
 		print(logMessage.Name)
 		if logMessage.Stream == "messages" {
-			print(" (edward)")
+			print(" (nedward)")
 		}
 		color.Unset()
 		print("]: ")

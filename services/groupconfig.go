@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/common"
-	"github.com/yext/edward/tracker"
-	"github.com/yext/edward/worker"
+	"github.com/nedscode/nedward/common"
+	"github.com/nedscode/nedward/tracker"
+	"github.com/nedscode/nedward/worker"
 )
 
 var _ ServiceOrGroup = &ServiceGroupConfig{}

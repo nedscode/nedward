@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/yext/edward/runner"
+	"github.com/nedscode/nedward/runner"
 )
 
 // runCmd represents the run command

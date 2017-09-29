@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/services"
 )
 
 // GeneratorCollection provides the ability to execute multiple generators under

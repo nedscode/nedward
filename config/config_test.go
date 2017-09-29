@@ -8,8 +8,8 @@ import (
 
 	must "github.com/theothertomelliott/must"
 
-	"github.com/yext/edward/common"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/common"
+	"github.com/nedscode/nedward/services"
 )
 
 var service1 = services.ServiceConfig{

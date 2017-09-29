@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// LogLine represents a line in an Edward service log
+// LogLine represents a line in an Nedward service log
 type LogLine struct {
 	Name    string
 	Time    time.Time

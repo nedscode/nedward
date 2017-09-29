@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/services"
 )
 
 // IcbmGenerator generates services from an icbm build.spec file

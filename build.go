@@ -2,5 +2,5 @@
 
 package main
 
-// Upgrade to Go version 1.6 to compile edward.
+// Upgrade to Go version 1.6 to compile nedward.
 func init() { Go_version_1_6_required_for_compilation() }

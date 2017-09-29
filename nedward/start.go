@@ -1,8 +1,8 @@
-package edward
+package nedward
 
 import (
 	"github.com/pkg/errors"
-	"github.com/yext/edward/config"
+	"github.com/nedscode/nedward/config"
 )
 
 func (c *Client) Start(names []string, skipBuild bool, tail bool, noWatch bool, exclude []string) error {
@@ -21,7 +21,7 @@ func (c *Client) Start(names []string, skipBuild bool, tail bool, noWatch bool, 
 		}
 	}
 
-	err = c.startAndTrack(sgs, skipBuild, tail, noWatch, exclude, c.EdwardExecutable)
+	err = c.startAndTrack(sgs, skipBuild, tail, noWatch, exclude, c.NedwardExecutable)
 	if err != nil {
 		return errors.WithStack(err)
 	}

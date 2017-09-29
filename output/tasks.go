@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/theothertomelliott/uilive"
-	"github.com/yext/edward/tracker"
+	"github.com/nedscode/nedward/tracker"
 )
 
 type Follower struct {

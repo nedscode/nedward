@@ -1,4 +1,4 @@
-package edward
+package nedward
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/pkg/errors"
-	"github.com/yext/edward/config"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/config"
+	"github.com/nedscode/nedward/services"
 )
 
 func (c *Client) Status(names []string) (string, error) {
