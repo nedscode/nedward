@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/services"
 )
 
 // ProcfileGenerator generates services and groups from Procfiles.

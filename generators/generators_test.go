@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	must "github.com/theothertomelliott/must"
-	"github.com/yext/edward/common"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/common"
+	"github.com/nedscode/nedward/services"
 )
 
 func TestInvalidPaths(t *testing.T) {
@@ -54,17 +54,17 @@ func TestNedwardGenerator(t *testing.T) {
 		outErr      error
 	}{
 		{
-			name: "Edward Simple",
-			path: "testdata/edward/simple/",
+			name: "Nedward Simple",
+			path: "testdata/nedward/simple/",
 			outImports: []string{
-				"project1/edward.json",
+				"project1/nedward.json",
 			},
 		},
 		{
-			name: "Edward With Go",
-			path: "testdata/edward/with_go",
+			name: "Nedward With Go",
+			path: "testdata/nedward/with_go",
 			outImports: []string{
-				"project1/edward.json",
+				"project1/nedward.json",
 			},
 			outServices: []*services.ServiceConfig{
 				{
@@ -83,7 +83,7 @@ func TestNedwardGenerator(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			gc := &GeneratorCollection{
 				Generators: []Generator{
-					&EdwardGenerator{},
+					&NedwardGenerator{},
 					&GoGenerator{},
 				},
 				Path:    test.path,
@@ -118,7 +118,7 @@ func TestGoGenerator(t *testing.T) {
 			outServices: []*services.ServiceConfig{
 				{
 					Name: "simple",
-					Path: common.StringToStringPointer("gocode/src/yext/simple"),
+					Path: common.StringToStringPointer("gocode/src/nedscode/simple"),
 					Env:  []string{},
 					Commands: services.ServiceConfigCommands{
 						Build:  "go install",
@@ -226,8 +226,8 @@ func TestDockerGenerator(t *testing.T) {
 					Path: common.StringToStringPointer("service"),
 					Env:  []string{},
 					Commands: services.ServiceConfigCommands{
-						Build:  "docker build -t service:edward .",
-						Launch: "docker run -p 80:80 service:edward",
+						Build:  "docker build -t service:nedward .",
+						Launch: "docker run -p 80:80 service:nedward",
 					},
 					LaunchChecks: &services.LaunchChecks{
 						Ports: []int{80},
@@ -244,8 +244,8 @@ func TestDockerGenerator(t *testing.T) {
 					Path: common.StringToStringPointer("parent/child"),
 					Env:  []string{},
 					Commands: services.ServiceConfigCommands{
-						Build:  "docker build -t child:edward .",
-						Launch: "docker run -p 80:80 child:edward",
+						Build:  "docker build -t child:nedward .",
+						Launch: "docker run -p 80:80 child:nedward",
 					},
 					LaunchChecks: &services.LaunchChecks{
 						Ports: []int{80},
@@ -256,8 +256,8 @@ func TestDockerGenerator(t *testing.T) {
 					Path: common.StringToStringPointer("parent"),
 					Env:  []string{},
 					Commands: services.ServiceConfigCommands{
-						Build:  "docker build -t parent:edward .",
-						Launch: "docker run -p 80:80 parent:edward",
+						Build:  "docker build -t parent:nedward .",
+						Launch: "docker run -p 80:80 parent:nedward",
 					},
 					LaunchChecks: &services.LaunchChecks{
 						Ports: []int{80},
@@ -283,8 +283,8 @@ func TestDockerGenerator(t *testing.T) {
 					Path: common.StringToStringPointer("parent"),
 					Env:  []string{},
 					Commands: services.ServiceConfigCommands{
-						Build:  "docker build -t parent:edward .",
-						Launch: "docker run -p 80:80 parent:edward",
+						Build:  "docker build -t parent:nedward .",
+						Launch: "docker run -p 80:80 parent:nedward",
 					},
 					LaunchChecks: &services.LaunchChecks{
 						Ports: []int{80},

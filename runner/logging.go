@@ -10,7 +10,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// LogLine represents a line in an Edward service log
+// Logger provides a simple interface for logging
+type Logger interface {
+	Printf(format string, a ...interface{})
+}
+
+// LogLine represents a line in an Nedward service log
 type LogLine struct {
 	Name    string
 	Time    time.Time

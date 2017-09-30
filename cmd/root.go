@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
@@ -13,17 +12,17 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/yext/edward/common"
-	"github.com/yext/edward/config"
-	"github.com/yext/edward/edward"
-	"github.com/yext/edward/home"
-	"github.com/yext/edward/services"
-	"github.com/yext/edward/updates"
+	"github.com/nedscode/nedward/common"
+	"github.com/nedscode/nedward/config"
+	"github.com/nedscode/nedward/nedward"
+	"github.com/nedscode/nedward/home"
+	"github.com/nedscode/nedward/services"
+	"github.com/nedscode/nedward/updates"
 )
 
 var cfgFile string
 
-var edwardClient *edward.Client
+var nedwardClient *nedward.Client
 
 var logger *log.Logger
 
@@ -31,51 +30,57 @@ var checkUpdateChan chan interface{}
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "edward",
+	Use:   "nedward",
 	Short: "A tool for managing local instances of microservices",
-	Long: `Edward is a tool to simplify your microservices development workflow.
+	Long: `Nedward is a tool to simplify your microservices development workflow.
 Build, start and manage service instances with a single command.`,
 	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Begin logging
-		logger.Printf("=== Edward v%v ===\n", common.EdwardVersion)
+		logger.Printf("=== Nedward v%v ===\n", common.NedwardVersion)
 		logger.Printf("Args: %v\n", os.Args)
 
-		edwardClient = edward.NewClient()
 		// Set the default config path
-		if configPath != "" {
-			edwardClient.Config = configPath
-		} else {
-			edwardClient.Config = getConfigPath()
+		if configPath == "" {
+			var err error
+			configPath, err = config.GetConfigPathFromWorkingDirectory()
+			if err != nil {
+				return errors.WithStack(err)
+			}
 		}
-		// Set service checks to restart the client on sudo as needed
-		edwardClient.ServiceChecks = func(sgs []services.ServiceOrGroup) error {
-			return errors.WithStack(sudoIfNeeded(sgs))
-		}
-		edwardClient.Logger = logger
-		// Populate the Edward executable with this binary
-		edwardClient.EdwardExecutable = os.Args[0]
 
 		command := cmd.Use
 
+		var err error
 		if command != "generate" {
-			err := config.LoadSharedConfig(edwardClient.Config, common.EdwardVersion, logger)
+			nedwardClient, err = nedward.NewClientWithConfig(configPath, common.NedwardVersion)
 			if err != nil {
 				return errors.WithStack(err)
 			}
-			err = os.Chdir(config.GetBasePath())
+			err = os.Chdir(nedwardClient.BasePath())
 			if err != nil {
 				return errors.WithStack(err)
 			}
 		} else {
-			config.InitEmptyConfig()
+			nedwardClient, err = nedward.NewClient()
+			if err != nil {
+				return errors.WithStack(err)
+			}
 		}
+
+		// Set service checks to restart the client on sudo as needed
+		nedwardClient.ServiceChecks = func(sgs []services.ServiceOrGroup) error {
+			return errors.WithStack(sudoIfNeeded(sgs))
+		}
+		nedwardClient.Logger = logger
+		// Populate the Nedward executable with this binary
+		nedwardClient.NedwardExecutable = os.Args[0]
 
 		if command != "stop" {
 			// Check for legacy pidfiles and error out if any are found
-			for _, service := range config.GetServiceMap() {
+			for _, service := range nedwardClient.ServiceMap() {
 				if _, err := os.Stat(service.GetPidPathLegacy()); !os.IsNotExist(err) {
-					return errors.New("one or more services were started with an older version of Edward. Please run `edward stop` to stop these instances")
+					return errors.New("one or more services were started with an older version of Nedward. Please run `nedward stop` to stop these instances")
 				}
 			}
 		}
@@ -93,7 +98,7 @@ Build, start and manage service instances with a single command.`,
 			updateAvailable, ok := (<-checkUpdateChan).(bool)
 			if ok && updateAvailable {
 				latestVersion := (<-checkUpdateChan).(string)
-				fmt.Printf("A new version of Edward is available (%v), update with:\n\tgo get -u github.com/yext/edward\n", latestVersion)
+				fmt.Printf("A new version of Nedward is available (%v), update with:\n\tgo get -u github.com/nedscode/nedward\n", latestVersion)
 			}
 		}
 	},
@@ -103,12 +108,12 @@ Build, start and manage service instances with a single command.`,
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 
-	if err := home.EdwardConfig.Initialize(); err != nil {
+	if err := home.NedwardConfig.Initialize(); err != nil {
 		fmt.Printf("%+v", err)
 	}
 
 	logger = log.New(&lumberjack.Logger{
-		Filename:   filepath.Join(home.EdwardConfig.EdwardLogDir, "edward.log"),
+		Filename:   filepath.Join(home.NedwardConfig.NedwardLogDir, "nedward.log"),
 		MaxSize:    50, // megabytes
 		MaxBackups: 30,
 		MaxAge:     1, //days
@@ -160,42 +165,9 @@ func initConfig() {
 	}
 }
 
-// getConfigPath identifies the location of edward.json, if any exists
-func getConfigPath() string {
-	var pathOptions []string
-
-	// Config file in Edward Config dir
-	pathOptions = append(pathOptions, filepath.Join(home.EdwardConfig.Dir, "edward.json"))
-
-	// Config file in current working directory
-	wd, err := os.Getwd()
-	if err == nil {
-		pathOptions = append(pathOptions, filepath.Join(wd, "edward.json"))
-	}
-	for path.Dir(wd) != wd {
-		wd = path.Dir(wd)
-		pathOptions = append(pathOptions, filepath.Join(wd, "edward.json"))
-	}
-
-	for _, path := range pathOptions {
-		_, err := os.Stat(path)
-		if err != nil {
-			continue
-		}
-		absfp, absErr := filepath.Abs(path)
-		if absErr != nil {
-			fmt.Println("Error getting config file: ", absErr)
-			return ""
-		}
-		return absfp
-	}
-
-	return ""
-}
-
 func checkUpdateAvailable(checkUpdateChan chan interface{}) {
 	defer close(checkUpdateChan)
-	updateAvailable, latestVersion, err := updates.UpdateAvailable("github.com/yext/edward", common.EdwardVersion, filepath.Join(home.EdwardConfig.Dir, ".updatecache"), logger)
+	updateAvailable, latestVersion, err := updates.UpdateAvailable("nedscode", "nedward", common.NedwardVersion, filepath.Join(home.NedwardConfig.Dir, ".updatecache"), logger)
 	if err != nil {
 		logger.Println("Error checking for updates:", err)
 		return

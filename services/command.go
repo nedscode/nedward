@@ -17,14 +17,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/theothertomelliott/gopsutil-nocgo/net"
 	"github.com/theothertomelliott/gopsutil-nocgo/process"
-	"github.com/yext/edward/commandline"
-	"github.com/yext/edward/common"
-	"github.com/yext/edward/home"
-	"github.com/yext/edward/tracker"
-	"github.com/yext/edward/warmup"
+	"github.com/nedscode/nedward/commandline"
+	"github.com/nedscode/nedward/common"
+	"github.com/nedscode/nedward/home"
+	"github.com/nedscode/nedward/tracker"
+	"github.com/nedscode/nedward/warmup"
 )
 
-// StartupTimeoutSeconds is the amount of time in seconds that Edward will wait
+// StartupTimeoutSeconds is the amount of time in seconds that Nedward will wait
 // for a service to start before timing out
 var StartupTimeoutSeconds = 30
 
@@ -36,8 +36,8 @@ type ServiceCommand struct {
 	Pid int `json:"pid"`
 	// Config file from which this instance was launched
 	ConfigFile string `json:"configFile"`
-	// The edward version under which this instance was launched
-	EdwardVersion string `json:"edwardVersion"`
+	// The nedward version under which this instance was launched
+	NedwardVersion string `json:"nedwardVersion"`
 	// Overrides applied by the group under which this service was started
 	Overrides ContextOverride `json:"overrides,omitempty"`
 
@@ -53,7 +53,7 @@ func LoadServiceCommand(service *ServiceConfig, overrides ContextOverride) (comm
 	defer func() {
 		command.Service = service
 		command.Logger = service.Logger
-		command.EdwardVersion = common.EdwardVersion
+		command.NedwardVersion = common.NedwardVersion
 		command.Overrides = command.Overrides.Merge(overrides)
 		err = command.checkPid()
 	}()
@@ -148,7 +148,7 @@ func (c *ServiceCommand) printf(format string, v ...interface{}) {
 }
 
 func (c *ServiceCommand) createScript(content string, scriptType string) (*os.File, error) {
-	file, err := os.Create(path.Join(home.EdwardConfig.ScriptDir, c.Service.Name+"-"+scriptType))
+	file, err := os.Create(path.Join(home.NedwardConfig.ScriptDir, c.Service.Name+"-"+scriptType))
 	if err != nil {
 		return nil, err
 	}
@@ -166,22 +166,22 @@ func (c *ServiceCommand) createScript(content string, scriptType string) (*os.Fi
 func (c *ServiceCommand) deleteScript(scriptType string) error {
 	return errors.WithStack(
 		os.Remove(
-			path.Join(home.EdwardConfig.ScriptDir, c.Service.Name+"-"+scriptType),
+			path.Join(home.NedwardConfig.ScriptDir, c.Service.Name+"-"+scriptType),
 		),
 	)
 }
 
 // BuildSync will buid the service synchronously.
 // If force is false, the build will be skipped if the service is already running.
-func (c *ServiceCommand) BuildSync(force bool, task tracker.Task) error {
+func (c *ServiceCommand) BuildSync(workingDir string, force bool, task tracker.Task) error {
 	name := c.Service.GetName()
 	t := task.Child(name)
-	return errors.WithStack(c.BuildWithTracker(force, t))
+	return errors.WithStack(c.BuildWithTracker(workingDir, force, t))
 }
 
 // BuildWithTracker builds a service.
 // If force is false, the build will be skipped if the service is already running.
-func (c *ServiceCommand) BuildWithTracker(force bool, task tracker.Task) error {
+func (c *ServiceCommand) BuildWithTracker(workingDir string, force bool, task tracker.Task) error {
 	c.printf("building with tracker")
 	if c.Service.Commands.Build == "" {
 		return nil
@@ -197,7 +197,7 @@ func (c *ServiceCommand) BuildWithTracker(force bool, task tracker.Task) error {
 		return nil
 	}
 
-	cmd, err := c.constructCommand(c.Service.Commands.Build)
+	cmd, err := c.constructCommand(workingDir, c.Service.Commands.Build)
 	if err != nil {
 		job.SetState(tracker.TaskStateFailed, err.Error())
 		return errors.WithStack(err)
@@ -206,24 +206,21 @@ func (c *ServiceCommand) BuildWithTracker(force bool, task tracker.Task) error {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		job.SetState(tracker.TaskStateFailed, err.Error(), string(out))
-		return errors.WithStack(err)
+		return errors.WithMessage(err, "running build command")
 	}
 
 	job.SetState(tracker.TaskStateSuccess)
 	return nil
 }
 
-func (c *ServiceCommand) constructCommand(command string) (*exec.Cmd, error) {
+func (c *ServiceCommand) constructCommand(workingDir string, command string) (*exec.Cmd, error) {
 	command, cmdArgs, err := commandline.ParseCommand(os.Expand(command, c.Getenv))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	c.printf("running command %s %s", command, strings.Join(cmdArgs, " "))
 	cmd := exec.Command(command, cmdArgs...)
-	if c.Service.Path != nil {
-		cmd.Dir = os.Expand(*c.Service.Path, c.Getenv)
-	}
+	cmd.Dir = buildAbsPath(workingDir, c.Service.Path)
 	return cmd, nil
 }
 
@@ -557,21 +554,18 @@ func readAvailableLines(r io.ReadCloser) ([]string, error) {
 }
 
 func (c *ServiceCommand) getLaunchCommand(cfg OperationConfig) (*exec.Cmd, error) {
-	command := cfg.EdwardExecutable
+	command := cfg.NedwardExecutable
 	cmdArgs := []string{
 		"run",
 	}
 	if cfg.NoWatch {
 		cmdArgs = append(cmdArgs, "--no-watch")
 	}
-	workingDir, err := os.Getwd()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	cmdArgs = append(cmdArgs, "--directory", workingDir, c.Service.Name)
+	cmdArgs = append(cmdArgs, c.Service.Name)
 
 	c.printf("Running %s %s\n", command, strings.Join(cmdArgs, " "))
 	cmd := exec.Command(command, cmdArgs...)
+	cmd.Dir = buildAbsPath(cfg.WorkingDir, c.Service.Path)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	return cmd, nil
 }
@@ -579,9 +573,9 @@ func (c *ServiceCommand) getLaunchCommand(cfg OperationConfig) (*exec.Cmd, error
 // RunStopScript will execute the stop script for this command, returning full output
 // from running the script.
 // Assumes the service has a stop script configured.
-func (c *ServiceCommand) RunStopScript() ([]byte, error) {
+func (c *ServiceCommand) RunStopScript(workingDir string) ([]byte, error) {
 	c.printf("Running stop script for %v\n", c.Service.Name)
-	cmd, err := c.constructCommand(c.Service.Commands.Stop)
+	cmd, err := c.constructCommand(workingDir, c.Service.Commands.Stop)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -595,8 +589,12 @@ func (c *ServiceCommand) RunStopScript() ([]byte, error) {
 
 func (c *ServiceCommand) clearPid() {
 	c.Pid = 0
-	os.Remove(c.Service.GetPidPathLegacy())
-	os.Remove(c.Service.getStatePath())
+	var err error
+	_ = os.Remove(c.Service.GetPidPathLegacy())
+	err = os.Remove(c.Service.getStatePath())
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (c *ServiceCommand) clearState() {
@@ -604,6 +602,22 @@ func (c *ServiceCommand) clearState() {
 	c.deleteScript("Stop")
 	c.deleteScript("Launch")
 	c.deleteScript("Build")
+}
+
+func (c *ServiceCommand) validateState() (bool, error) {
+	if c.Pid == 0 {
+		c.clearPid()
+		return false, nil
+	}
+	exists, err := process.PidExists(int32(c.Pid))
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	if !exists {
+		c.clearPid()
+		return false, nil
+	}
+	return true, nil
 }
 
 // InterruptGroup sends an interrupt signal to a process group.
@@ -663,4 +677,16 @@ func logToStringSlice(path string) ([]string, error) {
 		return nil, errors.WithStack(err)
 	}
 	return lines, nil
+}
+
+// buildAbsPath will ensure the targetPath is absolute, joining to workingDir
+// if necessary.
+func buildAbsPath(workingDir string, targetPath *string) string {
+	if targetPath != nil {
+		if !path.IsAbs(*targetPath) {
+			return path.Join(workingDir, *targetPath)
+		}
+		return *targetPath
+	}
+	return workingDir
 }

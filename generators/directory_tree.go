@@ -71,7 +71,7 @@ func newDirectory(path string, parent *directory) (*directory, error) {
 	return d, nil
 }
 
-// Ignores returns the .edwardignore config for this directory or any of its
+// Ignores returns the .nedwardignore config for this directory or any of its
 // ancestor directories.
 func (d *directory) Ignores() *ignore.GitIgnore {
 	if d.ignores != nil {
@@ -124,7 +124,7 @@ func (d *directory) Generate(generators []Generator) error {
 }
 
 func loadIgnores(path string, currentIgnores *ignore.GitIgnore) (*ignore.GitIgnore, error) {
-	ignoreFile := filepath.Join(path, ".edwardignore")
+	ignoreFile := filepath.Join(path, ".nedwardignore")
 	if _, err := os.Stat(ignoreFile); err != nil {
 		if os.IsNotExist(err) {
 			return currentIgnores, nil

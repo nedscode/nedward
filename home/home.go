@@ -8,18 +8,18 @@ import (
 	"github.com/pkg/errors"
 )
 
-// EdwardConfiguration defines the application config for Edward
-type EdwardConfiguration struct {
+// NedwardConfiguration defines the application config for Nedward
+type NedwardConfiguration struct {
 	Dir          string
-	EdwardLogDir string
+	NedwardLogDir string
 	LogDir       string
 	PidDir       string
 	StateDir     string
 	ScriptDir    string
 }
 
-// EdwardConfig stores a shared instance of EdwardConfiguration for use across the app
-var EdwardConfig = EdwardConfiguration{}
+// NedwardConfig stores a shared instance of NedwardConfiguration for use across the app
+var NedwardConfig = NedwardConfiguration{}
 
 func createDirIfNeeded(path string) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -27,16 +27,16 @@ func createDirIfNeeded(path string) {
 	}
 }
 
-// Initialize sets up EdwardConfig based on the location of .edward in the home dir
-func (e *EdwardConfiguration) Initialize() error {
+// Initialize sets up NedwardConfig based on the location of .nedward in the home dir
+func (e *NedwardConfiguration) Initialize() error {
 	user, err := user.Current()
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	e.Dir = path.Join(user.HomeDir, ".edward")
+	e.Dir = path.Join(user.HomeDir, ".nedward")
 	createDirIfNeeded(e.Dir)
-	e.EdwardLogDir = path.Join(e.Dir, "edward_logs")
-	createDirIfNeeded(e.EdwardLogDir)
+	e.NedwardLogDir = path.Join(e.Dir, "nedward_logs")
+	createDirIfNeeded(e.NedwardLogDir)
 	e.LogDir = path.Join(e.Dir, "logs")
 	createDirIfNeeded(e.LogDir)
 	e.PidDir = path.Join(e.Dir, "pidFiles")

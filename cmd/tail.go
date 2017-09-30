@@ -11,7 +11,7 @@ var tailCmd = &cobra.Command{
 	Short:   "Tail the log for a service",
 	Aliases: []string{"log"},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return errors.WithStack(edwardClient.Log(args))
+		return errors.WithStack(nedwardClient.Log(args))
 	},
 }
 

@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/services"
 )
 
 func checkNotSudo() error {
@@ -19,7 +19,7 @@ func checkNotSudo() error {
 		return errors.WithStack(err)
 	}
 	if user.Uid == "0" {
-		return errors.New("edward should not be fun with sudo")
+		return errors.New("nedward should not be fun with sudo")
 	}
 	return nil
 }

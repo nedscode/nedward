@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	"github.com/pkg/errors"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/services"
 )
 
 // IcbmGenerator generates services from an icbm build.spec file
@@ -92,7 +92,7 @@ func playService(path, name string) *services.ServiceConfig {
 		Env:  []string{},
 		Commands: services.ServiceConfigCommands{
 			Build:  "python tools/icbm/build.py :" + name + "_dev",
-			Launch: "thirdparty/play/play test src/com/yext/" + name,
+			Launch: "thirdparty/play/play test src/com/nedscode/" + name,
 		},
 	}
 }

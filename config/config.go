@@ -13,14 +13,14 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
-	"github.com/yext/edward/common"
-	"github.com/yext/edward/services"
+	"github.com/nedscode/nedward/common"
+	"github.com/nedscode/nedward/services"
 )
 
-// Config defines the structure for the Edward project configuration file
+// Config defines the structure for the Nedward project configuration file
 type Config struct {
 	workingDir       string
-	MinNedwardVersion string                   `json:"edwardVersion,omitempty"`
+	MinNedwardVersion string                   `json:"nedwardVersion,omitempty"`
 	Imports          []string                 `json:"imports,omitempty"`
 	ImportedGroups   []GroupDef               `json:"-"`
 	ImportedServices []services.ServiceConfig `json:"-"`
@@ -45,7 +45,7 @@ type GroupDef struct {
 }
 
 // LoadConfig loads configuration from an io.Reader with the working directory explicitly specified
-func LoadConfig(filePath string, edwardVersion string, logger common.Logger) (Config, error) {
+func LoadConfig(filePath string, nedwardVersion string, logger common.Logger) (Config, error) {
 	reader, err := os.Open(filePath)
 	if err != nil {
 		return Config{}, errors.WithStack(err)
@@ -56,13 +56,13 @@ func LoadConfig(filePath string, edwardVersion string, logger common.Logger) (Co
 	if err != nil {
 		return Config{}, errors.WithStack(err)
 	}
-	if config.MinNedwardVersion != "" && edwardVersion != "" {
+	if config.MinNedwardVersion != "" && nedwardVersion != "" {
 		// Check that this config is supported by this version
 		minVersion, err1 := version.NewVersion(config.MinNedwardVersion)
 		if err1 != nil {
 			return Config{}, errors.WithStack(err)
 		}
-		currentVersion, err2 := version.NewVersion(edwardVersion)
+		currentVersion, err2 := version.NewVersion(nedwardVersion)
 		if err2 != nil {
 			return Config{}, errors.WithStack(err)
 		}
