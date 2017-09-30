@@ -10,7 +10,7 @@ var stopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop a service or a group",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return errors.WithStack(nedwardClient.Stop(args,
+		return errors.WithStack(edwardClient.Stop(args,
 			*stopFlags.force,
 			*stopFlags.exclude))
 	},

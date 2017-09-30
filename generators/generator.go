@@ -1,6 +1,6 @@
 package generators
 
-import "github.com/nedscode/nedward/services"
+import "github.com/yext/edward/services"
 
 // Generator provides an interface to identify a generator and perform a directory walk
 // to find projects for configuration.
@@ -25,7 +25,7 @@ type GroupGenerator interface {
 	Groups() []*services.ServiceGroupConfig
 }
 
-// ImportGenerator provides an interface to return a slice of Nedward config file paths
+// ImportGenerator provides an interface to return a slice of Edward config file paths
 // to be imported after a directory walk.
 type ImportGenerator interface {
 	Imports() []string

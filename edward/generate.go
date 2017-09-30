@@ -1,4 +1,4 @@
-package nedward
+package edward
 
 import (
 	"bufio"
@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/nedscode/nedward/common"
-	"github.com/nedscode/nedward/config"
-	"github.com/nedscode/nedward/generators"
-	"github.com/nedscode/nedward/services"
+	"github.com/yext/edward/common"
+	"github.com/yext/edward/config"
+	"github.com/yext/edward/generators"
+	"github.com/yext/edward/services"
 )
 
 func (c *Client) Generate(names []string, force bool, group string, targets []string) error {
@@ -20,12 +20,12 @@ func (c *Client) Generate(names []string, force bool, group string, targets []st
 	if configPath == "" {
 		wd, err := os.Getwd()
 		if err == nil {
-			configPath = filepath.Join(wd, "nedward.json")
+			configPath = filepath.Join(wd, "edward.json")
 		}
 	}
 
 	if f, err := os.Stat(configPath); err == nil && f.Size() != 0 {
-		cfg, err = config.LoadConfig(configPath, common.NedwardVersion, c.Logger)
+		cfg, err = config.LoadConfig(configPath, common.EdwardVersion, c.Logger)
 		if err != nil {
 			return errors.WithMessage(err, configPath)
 		}
@@ -233,7 +233,7 @@ func (c *Client) confirmList(cfg *config.Config,
 
 func generatorsMatchingTargets(targets []string) ([]generators.Generator, error) {
 	allGenerators := []generators.Generator{
-		&generators.NedwardGenerator{},
+		&generators.EdwardGenerator{},
 		&generators.DockerGenerator{},
 		&generators.GoGenerator{},
 		&generators.IcbmGenerator{},

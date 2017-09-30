@@ -12,7 +12,7 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Display service status",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		output, err := nedwardClient.Status(args)
+		output, err := edwardClient.Status(args)
 		if err == nil {
 			fmt.Print(output)
 		}

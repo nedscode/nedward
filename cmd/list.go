@@ -10,7 +10,7 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List available services and groups",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return errors.WithStack(nedwardClient.List())
+		return errors.WithStack(edwardClient.List())
 	},
 }
 

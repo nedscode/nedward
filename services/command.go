@@ -17,14 +17,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/theothertomelliott/gopsutil-nocgo/net"
 	"github.com/theothertomelliott/gopsutil-nocgo/process"
-	"github.com/nedscode/nedward/commandline"
-	"github.com/nedscode/nedward/common"
-	"github.com/nedscode/nedward/home"
-	"github.com/nedscode/nedward/tracker"
-	"github.com/nedscode/nedward/warmup"
+	"github.com/yext/edward/commandline"
+	"github.com/yext/edward/common"
+	"github.com/yext/edward/home"
+	"github.com/yext/edward/tracker"
+	"github.com/yext/edward/warmup"
 )
 
-// StartupTimeoutSeconds is the amount of time in seconds that Nedward will wait
+// StartupTimeoutSeconds is the amount of time in seconds that Edward will wait
 // for a service to start before timing out
 var StartupTimeoutSeconds = 30
 
@@ -36,8 +36,8 @@ type ServiceCommand struct {
 	Pid int `json:"pid"`
 	// Config file from which this instance was launched
 	ConfigFile string `json:"configFile"`
-	// The nedward version under which this instance was launched
-	NedwardVersion string `json:"nedwardVersion"`
+	// The edward version under which this instance was launched
+	EdwardVersion string `json:"edwardVersion"`
 	// Overrides applied by the group under which this service was started
 	Overrides ContextOverride `json:"overrides,omitempty"`
 
@@ -53,7 +53,7 @@ func LoadServiceCommand(service *ServiceConfig, overrides ContextOverride) (comm
 	defer func() {
 		command.Service = service
 		command.Logger = service.Logger
-		command.NedwardVersion = common.NedwardVersion
+		command.EdwardVersion = common.EdwardVersion
 		command.Overrides = command.Overrides.Merge(overrides)
 		err = command.checkPid()
 	}()
@@ -148,7 +148,7 @@ func (c *ServiceCommand) printf(format string, v ...interface{}) {
 }
 
 func (c *ServiceCommand) createScript(content string, scriptType string) (*os.File, error) {
-	file, err := os.Create(path.Join(home.NedwardConfig.ScriptDir, c.Service.Name+"-"+scriptType))
+	file, err := os.Create(path.Join(home.EdwardConfig.ScriptDir, c.Service.Name+"-"+scriptType))
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (c *ServiceCommand) createScript(content string, scriptType string) (*os.Fi
 func (c *ServiceCommand) deleteScript(scriptType string) error {
 	return errors.WithStack(
 		os.Remove(
-			path.Join(home.NedwardConfig.ScriptDir, c.Service.Name+"-"+scriptType),
+			path.Join(home.EdwardConfig.ScriptDir, c.Service.Name+"-"+scriptType),
 		),
 	)
 }
@@ -557,7 +557,7 @@ func readAvailableLines(r io.ReadCloser) ([]string, error) {
 }
 
 func (c *ServiceCommand) getLaunchCommand(cfg OperationConfig) (*exec.Cmd, error) {
-	command := cfg.NedwardExecutable
+	command := cfg.EdwardExecutable
 	cmdArgs := []string{
 		"run",
 	}

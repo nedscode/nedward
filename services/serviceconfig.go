@@ -20,16 +20,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/theothertomelliott/gopsutil-nocgo/net"
 	"github.com/theothertomelliott/gopsutil-nocgo/process"
-	"github.com/nedscode/nedward/common"
-	"github.com/nedscode/nedward/home"
-	"github.com/nedscode/nedward/tracker"
-	"github.com/nedscode/nedward/warmup"
-	"github.com/nedscode/nedward/worker"
+	"github.com/yext/edward/common"
+	"github.com/yext/edward/home"
+	"github.com/yext/edward/tracker"
+	"github.com/yext/edward/warmup"
+	"github.com/yext/edward/worker"
 )
 
 var _ ServiceOrGroup = &ServiceConfig{}
 
-// ServiceConfig represents a service that can be managed by Nedward
+// ServiceConfig represents a service that can be managed by Edward
 type ServiceConfig struct {
 	// Service name, used to identify in commands
 	Name string `json:"name"`
@@ -48,7 +48,7 @@ type ServiceConfig struct {
 	LaunchChecks *LaunchChecks `json:"launch_checks,omitempty"`
 
 	// Env holds environment variables for a service, for example: GOPATH=~/gocode/
-	// These will be added to the vars in the environment under which the Nedward command was run
+	// These will be added to the vars in the environment under which the Edward command was run
 	Env []string `json:"env,omitempty"`
 
 	Platform string `json:"platform,omitempty"`
@@ -563,7 +563,7 @@ func (c *ServiceConfig) IsSudo(cfg OperationConfig) bool {
 
 // GetRunLog returns the path to the run log for this service
 func (c *ServiceConfig) GetRunLog() string {
-	dir := home.NedwardConfig.LogDir
+	dir := home.EdwardConfig.LogDir
 	return path.Join(dir, c.Name+".log")
 }
 
@@ -590,7 +590,7 @@ func (c *ServiceConfig) getPid(command *ServiceCommand, pidFile string) (int, er
 }
 
 func (c *ServiceConfig) getStateBase() string {
-	dir := home.NedwardConfig.StateDir
+	dir := home.EdwardConfig.StateDir
 	name := c.Name
 	hasher := sha1.New()
 	hasher.Write([]byte(c.ConfigFile))
@@ -603,7 +603,7 @@ func (c *ServiceConfig) getStatePath() string {
 }
 
 func (c *ServiceConfig) GetPidPathLegacy() string {
-	dir := home.NedwardConfig.PidDir
+	dir := home.EdwardConfig.PidDir
 	name := c.Name
 	return path.Join(dir, fmt.Sprintf("%v.pid", name))
 }

@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
-	"github.com/nedscode/nedward/common"
+	"github.com/yext/edward/common"
 )
 
 // UpdateAvailable determines if a newer version is available given a repo

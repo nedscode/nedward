@@ -1,4 +1,4 @@
-package nedward
+package edward
 
 import (
 	"bufio"
@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/nedscode/nedward/output"
-	"github.com/nedscode/nedward/services"
-	"github.com/nedscode/nedward/tracker"
-	"github.com/nedscode/nedward/worker"
+	"github.com/yext/edward/output"
+	"github.com/yext/edward/services"
+	"github.com/yext/edward/tracker"
+	"github.com/yext/edward/worker"
 )
 
 type Client struct {
@@ -26,7 +26,7 @@ type Client struct {
 
 	ServiceChecks func([]services.ServiceOrGroup) error
 
-	NedwardExecutable string
+	EdwardExecutable string
 
 	Follower TaskFollower
 
@@ -48,9 +48,9 @@ func NewClient() *Client {
 	}
 }
 
-func (c *Client) startAndTrack(sgs []services.ServiceOrGroup, skipBuild bool, tail bool, noWatch bool, exclude []string, nedwardExecutable string) error {
+func (c *Client) startAndTrack(sgs []services.ServiceOrGroup, skipBuild bool, tail bool, noWatch bool, exclude []string, edwardExecutable string) error {
 	cfg := services.OperationConfig{
-		NedwardExecutable: nedwardExecutable,
+		EdwardExecutable: edwardExecutable,
 		Exclusions:       exclude,
 		SkipBuild:        skipBuild,
 		NoWatch:          noWatch,

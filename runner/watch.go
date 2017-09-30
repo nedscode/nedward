@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/nedscode/nedward/services"
-	"github.com/nedscode/nedward/tracker"
+	"github.com/yext/edward/services"
+	"github.com/yext/edward/tracker"
 	fsnotify "gopkg.in/fsnotify.v1"
 )
 

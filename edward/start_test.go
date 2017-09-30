@@ -1,14 +1,14 @@
-package nedward_test
+package edward_test
 
 import (
 	"errors"
 	"testing"
 
 	"github.com/theothertomelliott/must"
-	"github.com/nedscode/nedward/common"
-	"github.com/nedscode/nedward/config"
-	"github.com/nedscode/nedward/nedward"
-	"github.com/nedscode/nedward/home"
+	"github.com/yext/edward/common"
+	"github.com/yext/edward/config"
+	"github.com/yext/edward/edward"
+	"github.com/yext/edward/home"
 )
 
 func TestStart(t *testing.T) {
@@ -33,7 +33,7 @@ func TestStart(t *testing.T) {
 		{
 			name:     "single service",
 			path:     "testdata/single",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"service"},
 			expectedStates: map[string]string{
 				"service":         "Pending", // This isn't technically right
@@ -45,7 +45,7 @@ func TestStart(t *testing.T) {
 		{
 			name:     "two services",
 			path:     "testdata/multiple",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"service1", "service2"},
 			expectedStates: map[string]string{
 				"service1":         "Pending", // This isn't technically right
@@ -60,7 +60,7 @@ func TestStart(t *testing.T) {
 		{
 			name:     "group",
 			path:     "testdata/group",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"group"},
 			expectedStates: map[string]string{
 				"group":                    "Pending",
@@ -79,7 +79,7 @@ func TestStart(t *testing.T) {
 		{
 			name:     "nested group",
 			path:     "testdata/subgroup",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"parentgroup"},
 			expectedStates: map[string]string{
 				"parentgroup":                                 "Pending",
@@ -99,7 +99,7 @@ func TestStart(t *testing.T) {
 		{
 			name:     "groupalias",
 			path:     "testdata/group",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"groupalias"},
 			expectedStates: map[string]string{
 				"group":                    "Pending",
@@ -118,7 +118,7 @@ func TestStart(t *testing.T) {
 		{
 			name:     "one service of two",
 			path:     "testdata/multiple",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"service2"},
 			expectedStates: map[string]string{
 				"service2":         "Pending", // This isn't technically right
@@ -130,14 +130,14 @@ func TestStart(t *testing.T) {
 		{
 			name:     "service not found",
 			path:     "testdata/single",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"missing"},
 			err:      errors.New("Service or group not found"),
 		},
 		{
 			name:     "warmup",
 			path:     "testdata/features",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"warmup"},
 			expectedStates: map[string]string{
 				"warmup":          "Pending", // This isn't technically right
@@ -150,7 +150,7 @@ func TestStart(t *testing.T) {
 		{
 			name:     "environment variables in services",
 			path:     "testdata/features",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"env"},
 			expectedStates: map[string]string{
 				"env":         "Pending", // This isn't technically right
@@ -162,7 +162,7 @@ func TestStart(t *testing.T) {
 		{
 			name:     "environment variables in groups",
 			path:     "testdata/features",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"env-group"},
 			expectedStates: map[string]string{
 				"env-group":                         "Pending",
@@ -175,7 +175,7 @@ func TestStart(t *testing.T) {
 		{
 			name:     "launch check wait",
 			path:     "testdata/features",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"wait"},
 			expectedStates: map[string]string{
 				"wait":         "Pending", // This isn't technically right
@@ -187,7 +187,7 @@ func TestStart(t *testing.T) {
 		{
 			name:     "launch check log",
 			path:     "testdata/features",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"logLine"},
 			expectedStates: map[string]string{
 				"logLine":         "Pending", // This isn't technically right
@@ -199,8 +199,8 @@ func TestStart(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// Set up nedward home directory
-			if err := home.NedwardConfig.Initialize(); err != nil {
+			// Set up edward home directory
+			if err := home.EdwardConfig.Initialize(); err != nil {
 				t.Fatal(err)
 			}
 
@@ -210,16 +210,16 @@ func TestStart(t *testing.T) {
 			cleanup := createWorkingDir(t, test.name, test.path)
 			defer cleanup()
 
-			err = config.LoadSharedConfig(test.config, common.NedwardVersion, nil)
+			err = config.LoadSharedConfig(test.config, common.EdwardVersion, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			client := nedward.NewClient()
+			client := edward.NewClient()
 			client.Config = test.config
 			tf := newTestFollower()
 			client.Follower = tf
-			client.NedwardExecutable = nedwardExecutable
+			client.EdwardExecutable = edwardExecutable
 			client.DisableConcurrentPhases = true
 
 			err = client.Start(test.services, test.skipBuild, false, test.noWatch, test.exclude)
@@ -254,7 +254,7 @@ func TestStartOrder(t *testing.T) {
 		{
 			name:     "group",
 			path:     "testdata/group",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"group"},
 			expectedStateOrder: []string{
 				"group",
@@ -273,7 +273,7 @@ func TestStartOrder(t *testing.T) {
 		{
 			name:     "nested group",
 			path:     "testdata/subgroup",
-			config:   "nedward.json",
+			config:   "edward.json",
 			services: []string{"parentgroup"},
 			expectedStateOrder: []string{
 				"parentgroup",
@@ -293,8 +293,8 @@ func TestStartOrder(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// Set up nedward home directory
-			if err := home.NedwardConfig.Initialize(); err != nil {
+			// Set up edward home directory
+			if err := home.EdwardConfig.Initialize(); err != nil {
 				t.Fatal(err)
 			}
 
@@ -304,16 +304,16 @@ func TestStartOrder(t *testing.T) {
 			cleanup := createWorkingDir(t, test.name, test.path)
 			defer cleanup()
 
-			err = config.LoadSharedConfig(test.config, common.NedwardVersion, nil)
+			err = config.LoadSharedConfig(test.config, common.EdwardVersion, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			client := nedward.NewClient()
+			client := edward.NewClient()
 			client.Config = test.config
 			tf := newTestFollower()
 			client.Follower = tf
-			client.NedwardExecutable = nedwardExecutable
+			client.EdwardExecutable = edwardExecutable
 			client.DisableConcurrentPhases = true
 
 			err = client.Start(test.services, test.skipBuild, false, test.noWatch, test.exclude)

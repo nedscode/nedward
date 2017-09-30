@@ -6,8 +6,8 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"github.com/nedscode/nedward/common"
-	"github.com/nedscode/nedward/services"
+	"github.com/yext/edward/common"
+	"github.com/yext/edward/services"
 	"fmt"
 )
 
@@ -35,8 +35,8 @@ func (c *chainLogger) Printf(format string, v ...interface{}) {
 	c.l.Printf(format, v...)
 }
 
-// LoadSharedConfig loads an Nedward project config into the shared maps
-func LoadSharedConfig(configPath string, nedwardVersion string, logger common.Logger) error {
+// LoadSharedConfig loads an Edward project config into the shared maps
+func LoadSharedConfig(configPath string, edwardVersion string, logger common.Logger) error {
 	if false {
 		logger = &chainLogger{
 			l: logger,
@@ -46,7 +46,7 @@ func LoadSharedConfig(configPath string, nedwardVersion string, logger common.Lo
 	InitEmptyConfig()
 	if configPath != "" {
 		basePath = filepath.Dir(configPath)
-		cfg, err := LoadConfig(configPath, nedwardVersion, logger)
+		cfg, err := LoadConfig(configPath, edwardVersion, logger)
 		if err != nil {
 			workingDir, _ := os.Getwd()
 			configRel, _ := filepath.Rel(workingDir, configPath)

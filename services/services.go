@@ -3,8 +3,8 @@ package services
 import (
 	"time"
 
-	"github.com/nedscode/nedward/tracker"
-	"github.com/nedscode/nedward/worker"
+	"github.com/yext/edward/tracker"
+	"github.com/yext/edward/worker"
 )
 
 // StatusRunning is the status string for a running service
@@ -27,7 +27,7 @@ type ServiceStatus struct {
 // OperationConfig provides additional configuration for an operation
 // on a service or group
 type OperationConfig struct {
-	NedwardExecutable string   // Path to the nedward executable for launching runners
+	EdwardExecutable string   // Path to the edward executable for launching runners
 	Exclusions       []string // Names of services/groups to be excluded from this operation
 	NoWatch          bool
 	SkipBuild        bool

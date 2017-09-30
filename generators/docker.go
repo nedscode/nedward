@@ -8,14 +8,14 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/nedscode/nedward/services"
+	"github.com/yext/edward/services"
 )
 
 // DockerGenerator generates services from Docker files.
 // Services are generated from a Dockerfile.
 //
-// The container is build with a tag based on the directory name suffixed with ':nedward'.
-// For a Dockerfile under 'service', the tag would be 'service:nedward'.
+// The container is build with a tag based on the directory name suffixed with ':edward'.
+// For a Dockerfile under 'service', the tag would be 'service:edward'.
 //
 // Ports identified with EXPOSE in the Dockerfile will be forwarded from the container,
 // with the local port matching the port in the container.
@@ -50,7 +50,7 @@ func (v *DockerGenerator) VisitDir(path string) (bool, error) {
 		}
 
 		name := filepath.Base(path)
-		tag := name + ":nedward"
+		tag := name + ":edward"
 		service := &services.ServiceConfig{
 			Name: name,
 			Path: &dockerPath,

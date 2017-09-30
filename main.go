@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/nedscode/nedward/cmd"
+	"github.com/yext/edward/cmd"
 )
 
 func main() {

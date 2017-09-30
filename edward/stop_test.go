@@ -1,4 +1,4 @@
-package nedward_test
+package edward_test
 
 import (
 	"os"
@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/theothertomelliott/must"
-	"github.com/nedscode/nedward/common"
-	"github.com/nedscode/nedward/config"
-	"github.com/nedscode/nedward/nedward"
-	"github.com/nedscode/nedward/home"
+	"github.com/yext/edward/common"
+	"github.com/yext/edward/config"
+	"github.com/yext/edward/edward"
+	"github.com/yext/edward/home"
 )
 
 func TestStopAll(t *testing.T) {
@@ -35,7 +35,7 @@ func TestStopAll(t *testing.T) {
 		{
 			name:          "single service",
 			path:          "testdata/single",
-			config:        "nedward.json",
+			config:        "edward.json",
 			servicesStart: []string{"service"},
 			servicesStop:  []string{"service"},
 			expectedStates: map[string]string{
@@ -47,7 +47,7 @@ func TestStopAll(t *testing.T) {
 		{
 			name:          "group, stop all",
 			path:          "testdata/group",
-			config:        "nedward.json",
+			config:        "edward.json",
 			servicesStart: []string{"group"},
 			expectedStates: map[string]string{
 				"service1":        "Pending",
@@ -62,7 +62,7 @@ func TestStopAll(t *testing.T) {
 		{
 			name:          "graceless shutdown",
 			path:          "testdata/graceless_shutdown",
-			config:        "nedward.json",
+			config:        "edward.json",
 			servicesStart: []string{"graceless"},
 			servicesStop:  []string{"graceless"},
 			expectedStates: map[string]string{
@@ -74,8 +74,8 @@ func TestStopAll(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// Set up nedward home directory
-			if err := home.NedwardConfig.Initialize(); err != nil {
+			// Set up edward home directory
+			if err := home.EdwardConfig.Initialize(); err != nil {
 				t.Fatal(err)
 			}
 
@@ -85,18 +85,18 @@ func TestStopAll(t *testing.T) {
 			cleanup := createWorkingDir(t, test.name, test.path)
 			defer cleanup()
 
-			err = config.LoadSharedConfig(test.config, common.NedwardVersion, nil)
+			err = config.LoadSharedConfig(test.config, common.EdwardVersion, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			client := nedward.NewClient()
+			client := edward.NewClient()
 
 			client.Config = test.config
 			tf := newTestFollower()
 			client.Follower = tf
 
-			client.NedwardExecutable = nedwardExecutable
+			client.EdwardExecutable = edwardExecutable
 			client.DisableConcurrentPhases = true
 
 			err = client.Start(test.servicesStart, test.skipBuild, false, test.noWatch, test.exclude)

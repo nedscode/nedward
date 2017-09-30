@@ -5,14 +5,14 @@ import (
 	"log"
 
 	"github.com/spf13/cobra"
-	"github.com/nedscode/nedward/common"
-	"github.com/nedscode/nedward/config"
+	"github.com/yext/edward/common"
+	"github.com/yext/edward/config"
 )
 
 func autocompleteServicesAndGroups(logger *log.Logger) {
 	printCommandChildren(RootCmd)
 
-	err := config.LoadSharedConfig(getConfigPath(), common.NedwardVersion, logger)
+	err := config.LoadSharedConfig(getConfigPath(), common.EdwardVersion, logger)
 	if err != nil {
 		logger.Println("Autocomplete> Error loading config:", err)
 	}
