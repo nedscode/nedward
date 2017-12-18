@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	must "github.com/theothertomelliott/must"
 	"github.com/nedscode/nedward/common"
 	"github.com/nedscode/nedward/services"
+	must "github.com/theothertomelliott/must"
 )
 
 func TestInvalidPaths(t *testing.T) {

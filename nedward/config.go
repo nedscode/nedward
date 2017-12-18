@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/pkg/errors"
 	"github.com/nedscode/nedward/config"
 	"github.com/nedscode/nedward/services"
+	"github.com/pkg/errors"
 )
 
 // LoadConfig loads an Nedward project config into the shared maps for this client

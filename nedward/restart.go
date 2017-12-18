@@ -3,10 +3,10 @@ package nedward
 import (
 	"sort"
 
-	"github.com/pkg/errors"
 	"github.com/nedscode/nedward/services"
 	"github.com/nedscode/nedward/tracker"
 	"github.com/nedscode/nedward/worker"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) Restart(names []string, force bool, skipBuild bool, tail bool, noWatch bool, exclude []string) error {
@@ -65,11 +65,13 @@ func (c *Client) restartOneOrMoreServices(serviceNames []string, skipBuild bool,
 	}
 
 	cfg := services.OperationConfig{
-		WorkingDir:       c.WorkingDir,
+		WorkingDir:        c.WorkingDir,
 		NedwardExecutable: c.NedwardExecutable,
-		Exclusions:       exclude,
-		SkipBuild:        skipBuild,
-		NoWatch:          noWatch,
+		Exclusions:        exclude,
+		SkipBuild:         skipBuild,
+		NoWatch:           noWatch,
+		Tags:              c.Tags,
+		LogFile:           c.LogFile,
 	}
 
 	task := tracker.NewTask(c.Follower.Handle)

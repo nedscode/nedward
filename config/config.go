@@ -12,21 +12,21 @@ import (
 	"strings"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/pkg/errors"
 	"github.com/nedscode/nedward/common"
 	"github.com/nedscode/nedward/services"
+	"github.com/pkg/errors"
 )
 
 // Config defines the structure for the Nedward project configuration file
 type Config struct {
-	workingDir       string
+	workingDir        string
 	MinNedwardVersion string                   `json:"nedwardVersion,omitempty"`
-	Imports          []string                 `json:"imports,omitempty"`
-	ImportedGroups   []GroupDef               `json:"-"`
-	ImportedServices []services.ServiceConfig `json:"-"`
-	Env              []string                 `json:"env,omitempty"`
-	Groups           []GroupDef               `json:"groups,omitempty"`
-	Services         []services.ServiceConfig `json:"services"`
+	Imports           []string                 `json:"imports,omitempty"`
+	ImportedGroups    []GroupDef               `json:"-"`
+	ImportedServices  []services.ServiceConfig `json:"-"`
+	Env               []string                 `json:"env,omitempty"`
+	Groups            []GroupDef               `json:"groups,omitempty"`
+	Services          []services.ServiceConfig `json:"services"`
 
 	ServiceMap map[string]*services.ServiceConfig      `json:"-"`
 	GroupMap   map[string]*services.ServiceGroupConfig `json:"-"`
@@ -46,6 +46,9 @@ type GroupDef struct {
 
 // LoadConfig loads configuration from an io.Reader with the working directory explicitly specified
 func LoadConfig(filePath string, nedwardVersion string, logger common.Logger) (Config, error) {
+	if logger != nil {
+		logger.Printf("Loading config from: %s\n", filePath)
+	}
 	reader, err := os.Open(filePath)
 	if err != nil {
 		return Config{}, errors.WithStack(err)
@@ -73,7 +76,6 @@ func LoadConfig(filePath string, nedwardVersion string, logger common.Logger) (C
 	err = config.initMaps()
 
 	config.printf("Config loaded with: %d groups and %d services\n", len(config.GroupMap), len(config.ServiceMap))
-
 	return config, errors.WithStack(err)
 }
 

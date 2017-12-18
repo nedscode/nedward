@@ -2,12 +2,17 @@ package nedward_test
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"path"
+	"path/filepath"
 	"testing"
+	"time"
 
-	"github.com/theothertomelliott/must"
 	"github.com/nedscode/nedward/common"
 	"github.com/nedscode/nedward/nedward"
+	"github.com/theothertomelliott/must"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 func TestStart(t *testing.T) {
@@ -38,6 +43,18 @@ func TestStart(t *testing.T) {
 				"service":         "Pending", // This isn't technically right
 				"service > Build": "Success",
 				"service > Start": "Success",
+			},
+			expectedServices: 1,
+		},
+		{
+			name:     "single service - alternate",
+			path:     "testdata/single",
+			config:   "alternate.json",
+			services: []string{"alternate"},
+			expectedStates: map[string]string{
+				"alternate":         "Pending", // This isn't technically right
+				"alternate > Build": "Success",
+				"alternate > Start": "Success",
 			},
 			expectedServices: 1,
 		},
@@ -204,16 +221,30 @@ func TestStart(t *testing.T) {
 			wd, cleanup := createWorkingDir(t, test.name, test.path)
 			defer cleanup()
 
-			client, err := nedward.NewClientWithConfig(path.Join(wd, test.config), common.NedwardVersion)
+			logfile := filepath.Join(wd, "nedward.log")
+			client, err := nedward.NewClientWithConfig(
+				path.Join(wd, test.config),
+				common.NedwardVersion,
+				log.New(&lumberjack.Logger{
+					Filename:   logfile,
+					MaxSize:    50, // megabytes
+					MaxBackups: 30,
+					MaxAge:     1, //days
+				}, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
+			client.LogFile = logfile
 			client.WorkingDir = wd
 			client.NedwardExecutable = nedwardExecutable
 			client.DisableConcurrentPhases = true
+			client.Tags = []string{fmt.Sprintf("test.start.%d", time.Now().UnixNano())}
 
 			tf := newTestFollower()
 			client.Follower = tf
+
+			defer showLogsIfFailed(t, test.name, wd, client)
 
 			err = client.Start(test.services, test.skipBuild, false, test.noWatch, test.exclude)
 			must.BeEqual(t, test.expectedStates, tf.states)
@@ -221,7 +252,7 @@ func TestStart(t *testing.T) {
 			must.BeEqualErrors(t, test.err, err)
 
 			// Verify that the process actually started
-			verifyAndStopRunners(t, test.expectedServices)
+			verifyAndStopRunners(t, client, test.expectedServices)
 		})
 	}
 }
@@ -283,6 +314,64 @@ func TestStartOrder(t *testing.T) {
 			},
 			expectedServices: 3,
 		},
+		{
+			name:     "build failure stops other services",
+			path:     "testdata/buildfailure",
+			config:   "nedward.json",
+			services: []string{"broken", "working"},
+			expectedStateOrder: []string{
+				"broken",
+				"broken > Build",
+			},
+			expectedServices: 0,
+			err:              errors.New("Error starting broken: build: running build command: exit status 2"),
+		},
+		{
+			name:     "launch failure stops other services",
+			path:     "testdata/launchfailure",
+			config:   "nedward.json",
+			services: []string{"broken", "working"},
+			expectedStateOrder: []string{
+				"broken",
+				"broken > Build",
+				"broken > Start",
+				"Cleanup",
+				"Cleanup > broken",
+				"Cleanup > broken > Stop",
+			},
+			expectedServices: 0,
+			err:              errors.New("Error starting broken: launch: service terminated prematurely"),
+		},
+		{
+			name:     "build failure in group stops other services",
+			path:     "testdata/buildfailure",
+			config:   "nedward.json",
+			services: []string{"fail-first"},
+			expectedStateOrder: []string{
+				"fail-first",
+				"fail-first > broken",
+				"fail-first > broken > Build",
+			},
+			expectedServices: 0,
+			err:              errors.New("Error starting fail-first: build: running build command: exit status 2"),
+		},
+		{
+			name:     "launch failure in group stops other services",
+			path:     "testdata/launchfailure",
+			config:   "nedward.json",
+			services: []string{"fail-first"},
+			expectedStateOrder: []string{
+				"fail-first",
+				"fail-first > broken",
+				"fail-first > broken > Build",
+				"fail-first > broken > Start",
+				"fail-first > Cleanup",
+				"fail-first > Cleanup > broken",
+				"fail-first > Cleanup > broken > Stop",
+			},
+			expectedServices: 0,
+			err:              errors.New("Error starting fail-first: launch: service terminated prematurely"),
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -292,22 +381,36 @@ func TestStartOrder(t *testing.T) {
 			wd, cleanup := createWorkingDir(t, test.name, test.path)
 			defer cleanup()
 
-			client, err := nedward.NewClientWithConfig(path.Join(wd, test.config), common.NedwardVersion)
+			logfile := filepath.Join(wd, "nedward.log")
+			client, err := nedward.NewClientWithConfig(
+				path.Join(wd, test.config),
+				common.NedwardVersion,
+				log.New(&lumberjack.Logger{
+					Filename:   logfile,
+					MaxSize:    50, // megabytes
+					MaxBackups: 30,
+					MaxAge:     1, //days
+				}, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
+			)
 			if err != nil {
-				t.Fatal(err)
+				t.Fatal("error creating client", err)
 			}
 			client.WorkingDir = wd
 			tf := newTestFollower()
+			client.LogFile = logfile
 			client.Follower = tf
 			client.NedwardExecutable = nedwardExecutable
 			client.DisableConcurrentPhases = true
+			client.Tags = []string{fmt.Sprintf("test.start_order.%d", time.Now().UnixNano())}
+
+			defer showLogsIfFailed(t, test.name, wd, client)
 
 			err = client.Start(test.services, test.skipBuild, false, test.noWatch, test.exclude)
 			must.BeEqual(t, test.expectedStateOrder, tf.stateOrder)
 			must.BeEqualErrors(t, test.err, err)
 
 			// Verify that the process actually started
-			verifyAndStopRunners(t, test.expectedServices)
+			verifyAndStopRunners(t, client, test.expectedServices)
 		})
 	}
 }

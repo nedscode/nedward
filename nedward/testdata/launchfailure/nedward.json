@@ -1,0 +1,32 @@
+{
+    "groups": [
+        {
+            "name": "fail-last",
+            "children": ["working","broken"]
+        }
+    ],
+    "groups": [
+        {
+            "name": "fail-first",
+            "children": ["broken","working"]
+        }
+    ],
+    "services": [
+        {
+            "name": "working",
+            "path": "nedward-test-service-working",
+            "commands": {
+                "build": "go build",
+                "launch": "./nedward-test-service-working 51936"
+            }
+        },
+        {
+            "name": "broken",
+            "path": "nedward-test-service-broken",
+            "commands": {
+                "build": "go build -o nedward-test-service-broken",
+                "launch": "./nedward-test-service2 51937"
+            }
+        }
+    ]
+}

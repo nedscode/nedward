@@ -1,3 +1,3 @@
 package common
 
-const NedwardVersion = "1.8.5"
+const NedwardVersion = "1.8.7"

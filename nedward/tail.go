@@ -8,9 +8,9 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/hpcloud/tail"
-	"github.com/pkg/errors"
 	"github.com/nedscode/nedward/runner"
 	"github.com/nedscode/nedward/services"
+	"github.com/pkg/errors"
 )
 
 type byTime []runner.LogLine

@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/pkg/errors"
 	"github.com/nedscode/nedward/home"
+	"github.com/pkg/errors"
 )
 
 func LoadRunningServices() ([]ServiceOrGroup, error) {
@@ -17,6 +17,11 @@ func LoadRunningServices() ([]ServiceOrGroup, error) {
 	}
 	var services []ServiceOrGroup
 	for _, file := range stateFiles {
+		// Skip directories (these contain instance state)
+		if file.IsDir() {
+			continue
+		}
+
 		command := &ServiceCommand{}
 		raw, err := ioutil.ReadFile(path.Join(dir, file.Name()))
 		if err != nil {

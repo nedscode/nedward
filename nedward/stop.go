@@ -1,10 +1,10 @@
 package nedward
 
 import (
-	"github.com/pkg/errors"
 	"github.com/nedscode/nedward/services"
 	"github.com/nedscode/nedward/tracker"
 	"github.com/nedscode/nedward/worker"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) Stop(names []string, force bool, exclude []string, all bool) error {
@@ -23,9 +23,11 @@ func (c *Client) Stop(names []string, force bool, exclude []string, all bool) er
 	}
 
 	cfg := services.OperationConfig{
-		WorkingDir:       c.WorkingDir,
+		WorkingDir:        c.WorkingDir,
 		NedwardExecutable: c.NedwardExecutable,
-		Exclusions:       exclude,
+		Exclusions:        exclude,
+		Tags:              c.Tags,
+		LogFile:           c.LogFile,
 	}
 
 	task := tracker.NewTask(c.Follower.Handle)
@@ -42,8 +44,12 @@ func (c *Client) Stop(names []string, force bool, exclude []string, all bool) er
 		p.Stop()
 		_ = <-p.Complete()
 	}()
+
 	for _, s := range sgs {
-		_ = s.Stop(cfg, services.ContextOverride{}, task, p)
+		states, err := c.getStates(s)
+		if len(states) != 0 && err == nil {
+			_ = s.Stop(cfg, services.ContextOverride{}, task, p)
+		}
 	}
 	return nil
 }

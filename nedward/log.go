@@ -4,9 +4,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/nedscode/nedward/runner"
 	"github.com/nedscode/nedward/services"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) Log(names []string) error {

@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/nedscode/nedward/common"
 	"github.com/nedscode/nedward/config"
 	"github.com/nedscode/nedward/generators"
 	"github.com/nedscode/nedward/services"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) Generate(names []string, force bool, group string, targets []string) error {

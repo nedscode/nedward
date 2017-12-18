@@ -27,11 +27,13 @@ type ServiceStatus struct {
 // OperationConfig provides additional configuration for an operation
 // on a service or group
 type OperationConfig struct {
-	WorkingDir       string
+	WorkingDir        string
 	NedwardExecutable string   // Path to the nedward executable for launching runners
-	Exclusions       []string // Names of services/groups to be excluded from this operation
-	NoWatch          bool
-	SkipBuild        bool
+	Exclusions        []string // Names of services/groups to be excluded from this operation
+	NoWatch           bool
+	SkipBuild         bool
+	Tags              []string // Tags to pass to `edward run`
+	LogFile           string
 }
 
 // IsExcluded returns true if the given service/group is excluded by this OperationConfig.

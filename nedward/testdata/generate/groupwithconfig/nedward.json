@@ -1,0 +1,18 @@
+{
+    "groups": [
+        {
+            "name": "group1",
+            "children": ["nedward-test-service"]
+        }
+    ],
+    "services": [
+        {
+            "name": "nedward-test-service",
+            "path": "nedward-test-service",
+            "commands": {
+                "build": "go build",
+                "launch": "./nedward-test-service"
+            }
+        }
+    ]
+}

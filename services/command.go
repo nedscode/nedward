@@ -11,22 +11,16 @@ import (
 	"path"
 	"strings"
 	"syscall"
-	"time"
 
-	"github.com/hpcloud/tail"
-	"github.com/pkg/errors"
-	"github.com/theothertomelliott/gopsutil-nocgo/net"
-	"github.com/theothertomelliott/gopsutil-nocgo/process"
 	"github.com/nedscode/nedward/commandline"
 	"github.com/nedscode/nedward/common"
 	"github.com/nedscode/nedward/home"
 	"github.com/nedscode/nedward/tracker"
 	"github.com/nedscode/nedward/warmup"
+	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
+	"github.com/theothertomelliott/gopsutil-nocgo/process"
 )
-
-// StartupTimeoutSeconds is the amount of time in seconds that Nedward will wait
-// for a service to start before timing out
-var StartupTimeoutSeconds = 30
 
 // ServiceCommand provides state and functions for managing a service
 type ServiceCommand struct {
@@ -40,6 +34,8 @@ type ServiceCommand struct {
 	NedwardVersion string `json:"nedwardVersion"`
 	// Overrides applied by the group under which this service was started
 	Overrides ContextOverride `json:"overrides,omitempty"`
+	// Identifier for this instance of the service
+	InstanceId string
 
 	Logger common.Logger `json:"-"`
 }
@@ -49,6 +45,7 @@ func LoadServiceCommand(service *ServiceConfig, overrides ContextOverride) (comm
 	command = &ServiceCommand{
 		Service:    service,
 		ConfigFile: service.ConfigFile,
+		InstanceId: uuid.NewV4().String(),
 	}
 	defer func() {
 		command.Service = service
@@ -59,7 +56,6 @@ func LoadServiceCommand(service *ServiceConfig, overrides ContextOverride) (comm
 	}()
 
 	legacyPidFile := service.GetPidPathLegacy()
-	service.printf("Checking pidfile for %v\n", service.Name)
 	if _, err := os.Stat(legacyPidFile); err == nil {
 		command.Pid, err = service.getPid(command, legacyPidFile)
 		if err != nil {
@@ -224,241 +220,6 @@ func (c *ServiceCommand) constructCommand(workingDir string, command string) (*e
 	return cmd, nil
 }
 
-func (c *ServiceCommand) waitForLogText(line string, cancel <-chan struct{}) error {
-	// Read output until we get the success
-	var t *tail.Tail
-	var err error
-	t, err = tail.TailFile(c.Service.GetRunLog(), tail.Config{
-		Follow: true,
-		ReOpen: true,
-		Poll:   true,
-		Logger: tail.DiscardingLogger,
-	})
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	for logLine := range t.Lines {
-
-		select {
-		case <-cancel:
-			return nil
-		default:
-		}
-
-		if strings.Contains(logLine.Text, line) {
-			return nil
-		}
-	}
-	return nil
-}
-
-const portStatusListen = "LISTEN"
-
-func (c *ServiceCommand) areAnyListeningPortsOpen(ports []int) (bool, error) {
-
-	var matchedPorts = make(map[int]struct{})
-	for _, port := range ports {
-		matchedPorts[port] = struct{}{}
-	}
-
-	connections, err := net.Connections("all")
-	if err != nil {
-		return false, errors.WithStack(err)
-	}
-	for _, connection := range connections {
-		if connection.Status == portStatusListen {
-			if _, ok := matchedPorts[int(connection.Laddr.Port)]; ok {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
-}
-
-func (c *ServiceCommand) waitForListeningPorts(ports []int, cancel <-chan struct{}, command *exec.Cmd) error {
-	for true {
-		time.Sleep(100 * time.Millisecond)
-
-		select {
-		case <-cancel:
-			return nil
-		default:
-		}
-
-		var matchedPorts = make(map[int]struct{})
-
-		connections, err := net.Connections("all")
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		for _, connection := range connections {
-			if connection.Status == portStatusListen {
-				matchedPorts[int(connection.Laddr.Port)] = struct{}{}
-			}
-		}
-		allMatched := true
-		for _, port := range ports {
-			if _, ok := matchedPorts[port]; !ok {
-				allMatched = false
-			}
-		}
-		if allMatched {
-			return nil
-		}
-	}
-	return errors.New("exited check loop unexpectedly")
-}
-
-func (c *ServiceCommand) waitForAnyPort(cancel <-chan struct{}, command *exec.Cmd) error {
-	for true {
-		time.Sleep(100 * time.Millisecond)
-
-		select {
-		case <-cancel:
-			return nil
-		default:
-		}
-
-		connections, err := net.Connections("all")
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		proc, err := process.NewProcess(int32(command.Process.Pid))
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if hasPort(proc, connections) {
-			return nil
-		}
-	}
-	return errors.New("exited check loop unexpectedly")
-}
-
-func hasPort(proc *process.Process, connections []net.ConnectionStat) bool {
-	for _, connection := range connections {
-		if connection.Status == portStatusListen && connection.Pid == int32(proc.Pid) {
-			return true
-		}
-	}
-
-	children, err := proc.Children()
-	if err == nil {
-		for _, child := range children {
-			if hasPort(child, connections) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func cancelableWait(cancel chan struct{}, tasks []func(cancel <-chan struct{}) error) <-chan struct{ error } {
-	finished := make(chan struct{ error })
-
-	go func() {
-		var result struct{ error }
-		for _, task := range tasks {
-			result = struct{ error }{task(cancel)}
-			if result.error != nil {
-				break
-			}
-		}
-
-		finished <- result
-	}()
-
-	return finished
-}
-
-func (c *ServiceCommand) waitUntilLive(command *exec.Cmd) error {
-	c.printf("waitUntilLive for %v\n", c.Service.Name)
-
-	var startChecks []func(cancel <-chan struct{}) error
-	var abortChecks []func(cancel <-chan struct{}) error
-
-	abortChecks = append(abortChecks, func(cancel <-chan struct{}) error {
-		// Wait until the process exists
-		c.printf("waiting for command to die\n")
-		command.Wait()
-		select {
-		case <-cancel:
-			return nil
-		default:
-		}
-		return errors.New("service terminated prematurely")
-	})
-
-	if c.Service.LaunchChecks != nil && len(c.Service.LaunchChecks.LogText) > 0 {
-		c.printf("adding log text check\n")
-		startChecks = append(startChecks, func(cancel <-chan struct{}) error {
-			c.printf("waiting for log text: %v\n", c.Service.LaunchChecks.LogText)
-			err := errors.WithStack(
-				c.waitForLogText(c.Service.LaunchChecks.LogText, cancel),
-			)
-			c.printf("log text done: %v\n", err)
-			return err
-		})
-	}
-
-	if c.Service.LaunchChecks != nil && len(c.Service.LaunchChecks.Ports) > 0 {
-		c.printf("adding port check\n")
-		startChecks = append(startChecks, func(cancel <-chan struct{}) error {
-			c.printf("listening for ports %v\n", c.Service.LaunchChecks.Ports)
-			err := errors.WithStack(
-				c.waitForListeningPorts(c.Service.LaunchChecks.Ports, cancel, command),
-			)
-			c.printf("listening ports done: %v\n", err)
-			return err
-		})
-	}
-
-	if c.Service.LaunchChecks != nil && c.Service.LaunchChecks.Wait != 0 {
-		c.printf("adding wait check\n")
-		startChecks = append(startChecks, func(cancel <-chan struct{}) error {
-			c.printf("waiting for: %d ms\n", c.Service.LaunchChecks.Wait)
-			delay := time.NewTimer(time.Duration(c.Service.LaunchChecks.Wait) * time.Millisecond)
-			defer delay.Stop()
-			select {
-			case <-cancel:
-				c.printf("cancel done\n")
-				return nil
-			case <-delay.C:
-				c.printf("delay done\n")
-				return nil
-			}
-		})
-	}
-
-	if len(startChecks) == 0 {
-		c.printf("adding default any port check\n")
-		startChecks = append(startChecks, func(cancel <-chan struct{}) error {
-			c.printf("listening any ports\n")
-			err := errors.WithStack(
-				c.waitForAnyPort(cancel, command),
-			)
-			c.printf("listening any ports done: %v\n", err)
-			return err
-		})
-	}
-
-	timeout := time.NewTimer(time.Duration(StartupTimeoutSeconds) * time.Second)
-	defer timeout.Stop()
-
-	done := make(chan struct{})
-	defer close(done)
-
-	select {
-	case result := <-cancelableWait(done, startChecks):
-		return errors.WithStack(result.error)
-	case result := <-cancelableWait(done, abortChecks):
-		return errors.WithStack(result.error)
-	case <-timeout.C:
-		return errors.New("Waiting for service timed out")
-	}
-
-}
-
 // StartAsync starts the service in the background
 // Will block until the service is known to have started successfully.
 // If the service fails to launch, an error will be returned.
@@ -518,18 +279,16 @@ func (c *ServiceCommand) StartAsync(cfg OperationConfig, task tracker.Task) erro
 		return errors.WithStack(err)
 	}
 
-	c.printf("waiting until live\n")
-	err = c.waitUntilLive(cmd)
+	err = WaitUntilLive(cmd, c.Service)
 	if err == nil {
 		startTask.SetState(tracker.TaskStateSuccess)
 		warmup.Run(c.Service.Name, c.Service.Warmup, task)
 		return nil
 	}
 
-	c.printf("getting log\n")
-	log, err := logToStringSlice(c.Service.GetRunLog())
-	if err != nil {
-		startTask.SetState(tracker.TaskStateFailed, "Could not read log", err.Error())
+	log, readingErr := logToStringSlice(c.Service.GetRunLog())
+	if readingErr != nil {
+		startTask.SetState(tracker.TaskStateFailed, "Could not read log", readingErr.Error(), fmt.Sprint("Original error: ", err.Error()))
 	} else {
 		startTask.SetState(tracker.TaskStateFailed, log...)
 	}
@@ -555,15 +314,19 @@ func readAvailableLines(r io.ReadCloser) ([]string, error) {
 
 func (c *ServiceCommand) getLaunchCommand(cfg OperationConfig) (*exec.Cmd, error) {
 	command := cfg.NedwardExecutable
-	cmdArgs := []string{
-		"run",
-	}
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "run", c.Service.Name)
+	cmdArgs = append(cmdArgs, "-c", c.ConfigFile)
 	if cfg.NoWatch {
 		cmdArgs = append(cmdArgs, "--no-watch")
 	}
-	cmdArgs = append(cmdArgs, c.Service.Name)
-
-	c.printf("Running %s %s\n", command, strings.Join(cmdArgs, " "))
+	for _, tag := range cfg.Tags {
+		cmdArgs = append(cmdArgs, "--tag", tag)
+	}
+	if cfg.LogFile != "" {
+		cmdArgs = append(cmdArgs, "--logfile", cfg.LogFile)
+	}
+	c.printf("Launching runner with args: %v", cmdArgs)
 	cmd := exec.Command(command, cmdArgs...)
 	cmd.Dir = buildAbsPath(cfg.WorkingDir, c.Service.Path)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -643,7 +406,7 @@ func signalGroup(cfg OperationConfig, pgid int, service *ServiceConfig, flag str
 	cmd := exec.Command(cmdName, cmdArgs...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	err := cmd.Run()
-	return errors.WithStack(err)
+	return errors.WithMessage(err, "signalGroup:")
 }
 
 type logLine struct {
@@ -683,9 +446,11 @@ func logToStringSlice(path string) ([]string, error) {
 // if necessary.
 func buildAbsPath(workingDir string, targetPath *string) string {
 	if targetPath != nil {
-		if !path.IsAbs(*targetPath) {
-			return path.Join(workingDir, *targetPath)
+		expandedPath := os.ExpandEnv(*targetPath)
+		if !path.IsAbs(expandedPath) {
+			return path.Join(workingDir, expandedPath)
 		}
+		*targetPath = expandedPath
 		return *targetPath
 	}
 	return workingDir
